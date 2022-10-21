@@ -35,6 +35,21 @@ Delays = [40,1400;...
           50,1500];
 
 Gain = [0.9;0.9;0.9;0.85;.85;.88;.90;.85;.87;.90;.90;.90;.90;.90];
+%positive is upstream, negative is downstream, second column is uncertainty
+SpanwiseCameraAngle = [1.5,1;
+                       1.5,1;
+                       2.5,1;
+                       2.5,1;
+                       1,1;
+                       0,1;
+                       0,1;
+                       -3,1;
+                       -2.5,1;
+                       0,1;
+                       0,1;
+                       0,1;
+                       -2.5,1;
+                       0,1;]; 
 
 RunNames =  ["SRA_22C";...
             "SRA_22C";...
@@ -81,4 +96,5 @@ for i = 1:length(holelabels)
 end
 
 save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat',...
-    'Gates','Delays','Gain','RunNames','downstream_loc','spanwise_loc','downstream_loc_unc','spanwise_loc_unc');
+    'Gates','Delays','Gain','RunNames','downstream_loc','spanwise_loc','downstream_loc_unc','spanwise_loc_unc',...
+    'SpanwiseCameraAngle');

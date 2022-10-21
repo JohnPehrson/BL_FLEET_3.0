@@ -297,8 +297,8 @@ inclination_angle_unc = 0.1.*ones(1,length(uniqueruns)); %in degrees
 zero_height_pix = wall_height_pix;
 rotation_angles = image_rotation_degrees;
 save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat',...
-    'pixel_um_resolution','zero_height_pix','inclination_angle','inclination_angle_unc','rotation_angles',...
-    'wall_surfs')
+    'uniqueruns','pixel_um_resolution','zero_height_pix','inclination_angle','inclination_angle_unc',...
+    'rotation_angles','wall_surfs')
 
 pixel_um_resolution(1,1)*1024/10000; %cm per length side of camera
 

@@ -9,22 +9,9 @@ clear all;close all;clc;
 
 %Header
 
-% Navigate to the PreRunConditions Folder and run the 4 scripts in that
-% folder
-    %Run Conditions - provides IRO conditions, Run labels, FLEET beam
-    %location, and the spanwise camera angle reletive the normal
 
-    %Grid Card Reolution Calculator - picks out the run numbers, finds the
-    %image resolution and uncertainty, finds the wall location, tabulates
-    %the inclination of the camera downward, and identifies the image
-    %rotation reletive the freestream
 
-    %ACE on Condition Bounds Processor - provides the reynolds number with
-    %uncertainty for the 'steady state' of the run. Provides start and stop
-    %images for the run and the pre-run for image processing
 
-    %Filepath Loader loads in an excel file with the filepaths of the FLEET
-    %images
 
 %% Input Variables
 run = 2;                                                %1: Laminar, 2: 100% Pizza Box, 3: Synthetic Roughness
@@ -35,10 +22,9 @@ run_start_end_prerun_flare = [300,800;1,1450;1000,4000];
 runconditions_filepath = 'TestConditions/BLFLEETRunConditions.mat';    %stuff like gates and delays
 resolution_filepath = 'TestConditions/RefData.mat';                    %resolution
 CFD_turbulent_profile_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_2.0\RawDataProcessing\SynthData\Case056NoTunnel.xlsx';
-ROI = [1,1024,300,450;
+ROI = [250,675,300,450;
        250,675,300,440;
        250,675,300,440]; %y limits, then x
-
 fitting_limits = [25,NaN,4,10,NaN,7;...
                   2000,NaN,4.5,1000,NaN,8;...
                   4096,NaN,5,3000,NaN,8]; %LB,x0,UB
