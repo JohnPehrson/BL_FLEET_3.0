@@ -45,22 +45,22 @@ for i = 1:rows_process
 
 end
 
-% 
-% figure;
-% title('fit');
-% image(fit_rows)
-% colorbar;
-% colormap(turbo(1500));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% 
-% figure;
-% title('subt.');
-% image(prerunData_mean-fit_rows)
-% colorbar;
-% colormap(turbo(1500));
-% axis equal;
-% set(gca, 'YDir','reverse')
+
+figure;
+title('fit');
+image(fit_rows)
+colorbar;
+colormap(turbo(1500));
+axis equal;
+set(gca, 'YDir','reverse')
+
+figure;
+title('subt.');
+image(prerunData_mean-fit_rows)
+colorbar;
+colormap(turbo(1500));
+axis equal;
+set(gca, 'YDir','reverse')
 
 %% Extrapolating data
 
