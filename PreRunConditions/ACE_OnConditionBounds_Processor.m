@@ -178,6 +178,8 @@ end
 %scale start and end time to 1000fps
 DAQ_start_stops = DAQ_start_stops.*1000;
 
+%start with the first image for the flare
+DAQ_flare_start_stop(:,1) = 1;
 
 
 %% Save out Data
