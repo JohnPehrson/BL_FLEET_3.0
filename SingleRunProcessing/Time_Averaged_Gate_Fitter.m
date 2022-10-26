@@ -6,9 +6,9 @@ function [flare_data,nearwall_bounds,amplitudes,fitvariables,near_wall_extrap] =
 %time-resolved image should result in an image that can be fit with a
 %gaussian curve near the wall easier
 if synth_switch
-savename = ['Matfiles_preprocessing/NearWallFit_Synth_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
+savename = ['Preprocessing_Filestorage/NearWallFit_Synth_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
 else
-savename = ['Matfiles_preprocessing/NearWallFit_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
+savename = ['Preprocessing_Filestorage/NearWallFit_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
 end
     %% Check if a background fit already exists
     if isfile(savename) %if it has been done before, don't redo it, just load it
