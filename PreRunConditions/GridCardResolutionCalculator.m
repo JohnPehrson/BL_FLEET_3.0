@@ -59,9 +59,7 @@ image_rotation_degrees = zeros(1,length(uniqueruns));
 wall_surfs = zeros(length(uniqueruns),2);
 pixel_um_resolution = zeros(length(uniqueruns),2);
 
-
 %% Data wall location and rotation
-
 for RUN_LOOP = 1:length(uniqueruns) % loop through different runs
         %initialize the location data for that run
             location_ims = and((runs==uniqueruns(RUN_LOOP)),rotation_tests);
