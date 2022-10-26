@@ -26,92 +26,131 @@ clear all;close all;clc;
     %Filepath Loader loads in an excel file with the filepaths of the FLEET
     %images
 
-%% Input Variables
-run = 2;                                                %1: Laminar, 2: 100% Pizza Box, 3: Synthetic Roughness
+%% Input Conditions
+    %filepaths
+    FLEET_folders_filepath = 'TestConditions/FLEETFilePaths.mat';          %file paths
+    Run_Conditions_filepath = 'TestConditions/BLFLEETRunConditions.mat';   %stuff like gates and delays
+    Resolution_filepath = 'TestConditions/RefData.mat';                    %resolution
+    ACE_On_Condition_filepath = 'TestConditions/ACE_Data.mat';             %start and stops
+    FLEET_ROIs_filepath = 'TestConditions/FLEET_ROIs.mat';                 %regions of interest for each run
+    CFD_turbulent_profile_filepath = 'Case056NoTunnel.xlsx';
 
-load('TestConditions/FLEETFilePaths.mat');
-run_start_end = [2000,28000;4250,32000;6800,30000]; 
-run_start_end_prerun_flare = [300,800;1,1450;1000,4000]; 
-runconditions_filepath = 'TestConditions/BLFLEETRunConditions.mat';    %stuff like gates and delays
-resolution_filepath = 'TestConditions/RefData.mat';                    %resolution
-CFD_turbulent_profile_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_2.0\RawDataProcessing\SynthData\Case056NoTunnel.xlsx';
-ROI = [1,1024,300,450;
-       250,675,300,440;
-       250,675,300,440]; %y limits, then x
+    %loading filepaths
+    load(FLEET_folders_filepath);
+    load(Run_Conditions_filepath);
+    load(Resolution_filepath);
+    load(ACE_On_Condition_filepath);
+    load(FLEET_ROIs_filepath);
 
-fitting_limits = [25,NaN,4,10,NaN,7;...
-                  2000,NaN,4.5,1000,NaN,8;...
-                  4096,NaN,5,3000,NaN,8]; %LB,x0,UB
-total_im_process = 1000; %NaN if process all
-total_im_preprocess = 1000; 
-loc_data = [140.89,1.00;0,1.00]; %x and uncertainty; y and uncertainty. origin is in the center of the tripping array, x is streamwise
-lens_standoff_dist = 415; %mm
+    %Data processing inputs
+    %5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495
+    run = [5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
+    lam_runs = [5492;5493]; %these runs were closest behind the trips and should be fit with unique bounds to ensure the curve fitting algorithm can identify the gates
+    cross_shock_runs = [5487;5488;5489];  %these runs were downstream the crossing shocks and thus the 'g2 bounds' should not approach the freestream
+    total_im_process = 500; %NaN if process all
+    total_im_preprocess = 500; 
+    lens_standoff_dist = 300; %mm
+    fitting_limits =    [25,NaN,4,10,NaN,7;...
+                        2000,NaN,4.5,1000,NaN,8;...
+                        4096,NaN,5,3000,NaN,8]; %LB,x0,UB
+    rotation_angles = rotation_angles+90; %to offset for manually rotating the images when taking scaling shots
+    freestream_est = 875/(1.05); %m/s, for bounding gates
 
-if isnan(total_im_process)
-total_im_process = run_start_end(run,2)-run_start_end(run,1)-1;
-end
+%%General Processing Loop of images
+    %specify which runs to actually use
+    run_stepper = 1:length(uniqueruns);
+    binary_proc_runs = false(length(uniqueruns),1);
+    for i = 1:length(run)
+        binary_proc_runs = or(binary_proc_runs,(run(i)==uniqueruns));
+    end
+
+for run_loop = run_stepper(binary_proc_runs)
+    %% Run Details
+        %getting details for that individual run
+        single_run = uniqueruns(run_loop);
+        run_start_end = [DAQ_start_stops(run_loop,1),DAQ_start_stops(run_loop,2)];
+        run_start_end_prerun_flare = [DAQ_flare_start_stop(run_loop,1),DAQ_flare_start_stop(run_loop,2)];
+        loc_data = [downstream_loc(run_loop),downstream_loc_unc(run_loop);spanwise_loc(run_loop),spanwise_loc_unc(run_loop)]; %mm, reletive the leading edge of the test article, subtract ~54 mm for this to be reletive the tripping element
+        ROI = ROIs(run_loop,:);
+        rot_angle = rotation_angles(run_loop);
+        resolution = pixel_um_resolution(run_loop,:);
+        run_inclination_angle = inclination_angle(run_loop);
+        run_inclination_angle_unc = inclination_angle_unc(run_loop);
+        lam_run_binary = (sum(lam_runs==uniqueruns(run_loop))==1);
+        top_offset = top_offset_runs(run_loop); %for finding approx wall location
+        cross_shock_run_binary = (sum(cross_shock_runs==uniqueruns(run_loop))==1);
+
+
+
+        %total number of images to process if I want to process all of them
+        if isnan(total_im_process)
+            total_im_process = run_start_end(run_loop,2)-run_start_end(run_loop,1)-1;
+        end
 
     %% Synthetic Data for use if the switch is flipped
-    synth_switch = false;  
-    synth_numimages = 300;
-    if synth_switch
-        f = fullfile('ProcessedData',['ProcessedData_Run',num2str(run),'*']);
-        fstruct = dir(f);
-        synth_real_replicate = fullfile('ProcessedData',fstruct.name);
-
-%         total_im_process(isnan(total_im_process)) = length(run_start_end(run,1):(run_start_end(run,2)-1));
-%         synth_real_replicate = ['ProcessedData/ProcessedData_Run',num2str(run),'_Images',num2str(total_im_process),'.mat'];
-        total_im_process = synth_numimages;
-
-        [synthfilepath,run_start_end_synth,nondim_velo_error,synth_input_tau_fit,...
-            synth_input_velocity_mean] = Synthetic_Data_Gen(runconditions_filepath,...
-         resolution_filepath,run,synth_real_replicate,synth_numimages,ROI(run,:),fitting_limits);
-        run_start_end(run,:) = run_start_end_synth(run,:);
-    else
-        synthfilepath = '';
-        synth_numimages = total_im_process;
-        nondim_velo_error = 0;
-        synth_input_tau_fit = 0;
-        synth_input_velocity_mean = 0;
-        synth_real_replicate = 0;
-    end
+        synth_switch = false;  
+        synth_numimages = 500;
+        
+        if synth_switch
+            f = fullfile('ProcessedData',['ProcessedData_Run',num2str(run_loop),'*']);
+            fstruct = dir(f);
+            synth_real_replicate = fullfile('ProcessedData',fstruct.name);
+    
+    %         total_im_process(isnan(total_im_process)) = length(run_start_end(run,1):(run_start_end(run,2)-1));
+    %         synth_real_replicate = ['ProcessedData/ProcessedData_Run',num2str(run),'_Images',num2str(total_im_process),'.mat'];
+            total_im_process = synth_numimages;
+    
+            [synthfilepath,run_start_end_synth,nondim_velo_error,synth_input_tau_fit,...
+                synth_input_velocity_mean] = Synthetic_Data_Gen(Run_Conditions_filepath,...
+             Resolution_filepath,run_loop,synth_real_replicate,synth_numimages,ROI(run_loop,:),fitting_limits);
+            run_start_end(run_loop,:) = run_start_end_synth(run_loop,:);
+        else
+            synthfilepath = '';
+            synth_numimages = total_im_process;
+            nondim_velo_error = 0;
+            synth_input_tau_fit = 0;
+            synth_input_velocity_mean = 0;
+            synth_real_replicate = 0;
+        end
 
     %% Image processing (if I need to do it)
-    if (~synth_switch)
-    data_processing_filepath = ['Matfiles_preprocessing/ProcessedImageData_Run',num2str(run),'Imcount_',num2str(total_im_process),'.mat'];
-    else
-    data_processing_filepath = ['Matfiles_preprocessing/ProcessedSynthData_Run',num2str(run),'Imcount_',num2str(total_im_process),'.mat'];
-    end
+        if (~synth_switch)
+        data_processing_filepath = ['Matfiles_preprocessing/ProcessedImageData_Run',num2str(single_run),'Imcount_',num2str(total_im_process),'.mat'];
+        else
+        data_processing_filepath = ['Matfiles_preprocessing/ProcessedSynthData_Run',num2str(single_run),'Imcount_',num2str(total_im_process),'.mat'];
+        end
+        
+        if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
+                load(data_processing_filepath);
+            else % Bounds don't already exist, compute them
+            %% Preprocessing (getting mean data, image bounding/ROI, filtering, fitting bounding)
+                [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
+                gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,gates,...
+                delay,tau_fit,doublegauss_fitvariables,...
+                constant_background,nearwall_bounds,...
+                near_wall_extrap,total_sig_thresh,cfd_turb_prof,...
+                zero_height_ref_unc,numprelim_images,imageprocesscount] = BLPreprocessing(run_loop,...
+                run_filepaths(run_loop,:),run_start_end,run_start_end_prerun_flare,...
+                ROI,fitting_limits,synthfilepath,synth_switch,synth_numimages,total_im_process,total_im_preprocess,...
+                CFD_turbulent_profile_filepath,synth_real_replicate,rot_angle,resolution,Gates(run_loop,:),Delays(run_loop,:),...
+                lam_run_binary,single_run,top_offset,freestream_est,cross_shock_run_binary);
+        
+            %% Processing (primary fitting process with instantaneous velocity measurements
+                [red_centroids,red_velocity,red_velocity_s,red_velocity_r,red_R2,red_g2SNR,red_signal,...
+                uncertainty_wall_loc_pix,numimages] = BLImageProcessor(run_loop,run_filepaths(run_loop,:),run_start_end(run_loop,:),...
+                ROI(run_loop,:),imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
+                gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,resolution,gates,...
+                delay,fitting_limits,total_im_process,synthfilepath,synth_switch,constant_background,nearwall_bounds,...
+                near_wall_extrap,rot_angle,total_sig_thresh,cfd_turb_prof,imageprocesscount);
     
-    if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
-            load(data_processing_filepath);
-        else % Bounds don't already exist, compute them
-        %% Preprocessing (getting mean data, image bounding/ROI, filtering, fitting bounding)
-            [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
-            gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,gates,...
-            delay,pixel_um_resolution,tau_fit,doublegauss_fitvariables,...
-            constant_background,inclination_angle,inclination_angle_unc,nearwall_bounds,...
-            near_wall_extrap,rotation_angles,total_sig_thresh,cfd_turb_prof,...
-            zero_height_ref_unc,numprelim_images,imageprocesscount] = BLPreprocessing(run,...
-            run_filepaths(run,:),run_start_end(run,:),run_start_end_prerun_flare(run,:),...
-            runconditions_filepath,resolution_filepath,ROI(run,:),fitting_limits,synthfilepath,...
-            synth_switch,synth_numimages,total_im_process,total_im_preprocess,...
-            CFD_turbulent_profile_filepath,synth_real_replicate);
-    
-        %% Processing (primary fitting process with instantaneous velocity measurements
-            [red_centroids,red_velocity,red_velocity_s,red_velocity_r,red_R2,red_g2SNR,red_signal,...
-            uncertainty_wall_loc_pix,numimages] = BLImageProcessor(run,run_filepaths(run,:),run_start_end(run,:),...
-            ROI(run,:),imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
-            gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,pixel_um_resolution,gates,...
-            delay,fitting_limits,total_im_process,synthfilepath,synth_switch,constant_background,nearwall_bounds,...
-            near_wall_extrap,rotation_angles,total_sig_thresh,cfd_turb_prof,imageprocesscount);
+            %save data for next time
+            save(data_processing_filepath,'red_centroids','red_velocity','red_velocity_s','red_velocity_r','red_R2','red_g2SNR',...
+            'red_signal','gate1_location_bounds','gate2_location_bounds','numimages','synth_switch','run_inclination_angle',...
+            'run_inclination_angle_unc','emissionlocatingdata','pixel_um_resolution','tau_fit','uncertainty_wall_loc_pix','doublegauss_fitvariables',...
+            'constant_background','gate1_location_bounds', 'gate2_location_bounds','zero_height_ref_unc','background_totalfit');
+        end
 
-        %save data for next time
-        save(data_processing_filepath,'red_centroids','red_velocity','red_velocity_s','red_velocity_r','red_R2','red_g2SNR',...
-        'red_signal','gate1_location_bounds','gate2_location_bounds','numimages','synth_switch','inclination_angle',...
-        'inclination_angle_unc','emissionlocatingdata','pixel_um_resolution','tau_fit','uncertainty_wall_loc_pix','doublegauss_fitvariables',...
-        'constant_background','gate1_location_bounds', 'gate2_location_bounds','zero_height_ref_unc','background_totalfit');
-    end
+end
 
 %% Postprocessing (filtering and calculating time-averaged velocimetry data)
 [velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
@@ -119,8 +158,8 @@ end
     sufficient_counter,filt_centroids] = BLPostprocessing(red_centroids,...
     red_velocity,red_velocity_s,red_velocity_r,red_R2,red_g2SNR,...
     red_signal,gate1_location_bounds,gate2_location_bounds,...
-    numimages,synth_switch,inclination_angle(run),...
-    inclination_angle_unc(run),emissionlocatingdata,pixel_um_resolution,...
+    numimages,synth_switch,run_inclination_angle,...
+    run_inclination_angle_unc,emissionlocatingdata,pixel_um_resolution,...
     zero_height_ref_unc);
 
 %% Plotting
