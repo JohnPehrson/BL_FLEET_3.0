@@ -1,4 +1,5 @@
-function [g1_location_col,wallfit_location_col,move_flare_fit,zero_height_ref_unc] = MeanLocational_Fitting(imageData_mean,drow,dcol,ROI,run,zero_height_pix,prerunData_mean)
+function [g1_location_col,wallfit_location_col,move_flare_fit,zero_height_ref_unc] = MeanLocational_Fitting(imageData_mean,...
+    drow,dcol,run,prerunData_mean,top_offset)
 %This function is meant to get time-averaged results about where the FLEET
 %line lies. This function returns data that allows instantaneous FLEET
 %measurements to be spatially located consistently in the x and y axis.
@@ -8,13 +9,8 @@ colaverage = mean(imageData_mean,1);
 % figure;
 % plot(1:dcol,colaverage);
 
-[amp,maxind] = max(colaverage);
-x = 1:dcol;
-x0 = [amp,maxind,4];
-LB = [100,25,1];
-UB = [4096,dcol-25,10];
-[gate1_fitvariables] = SingleGaussFit(x0,LB,UB,x,colaverage);
-g1_location_col = gate1_fitvariables(2);
+[~,maxind] = max(colaverage);
+g1_location_col = maxind;
 
 
 %% Location the emissions in dy (finding the location of the bright spot near the surface) for the real data
@@ -23,7 +19,16 @@ g1_location_col = gate1_fitvariables(2);
         x = 1:drow;
         sum_half_width = 12;
         rowaverage = mean(imageData_mean(:,round(g1_location_col-sum_half_width):round(g1_location_col+sum_half_width)),2);
-        [amp,wallfit_location_col] = max(rowaverage);
+        TF_row = islocalmax(rowaverage,'MinProminence',10);
+        possible_wall_locations = x(TF_row);
+        [~,closest_wall_loc_ind] = min(abs(top_offset-possible_wall_locations));
+        wallfit_location_col = possible_wall_locations(closest_wall_loc_ind);
+        amp = rowaverage(wallfit_location_col);
+
+        figure;
+        plot(x,rowaverage);
+        hold on;
+        scatter(x(TF_row),rowaverage(TF_row))
 
     %gaussian fit
         x0 = [amp,wallfit_location_col,2];
@@ -33,10 +38,10 @@ g1_location_col = gate1_fitvariables(2);
         fit_gauss = @(p) p(1)*exp(-(x-p(2)).^2./(2*p(3)^2));
         %wallfit_location_col = fitvariables(2);
     
-        figure;
-        plot(x,rowaverage');
-        hold on;
-        plot(x,fit_gauss(fitvariables));
+%         figure;
+%         plot(x,rowaverage');
+%         hold on;
+%         plot(x,fit_gauss(fitvariables));
 
     %ref-image data
         zero_height_ref_unc = abs(wallfit_location_col-fitvariables(2))  ; %pixels of uncertainty in wall location
@@ -61,9 +66,4 @@ g1_location_col = gate1_fitvariables(2);
 
 %% Difference in height from background to real run
 move_flare_fit = wallfit_location_col2-wallfit_location_col;%move up by this amount
-
-if run==3
-    wallfit_location_col = wallfit_location_col-4;
-end
-
 end
