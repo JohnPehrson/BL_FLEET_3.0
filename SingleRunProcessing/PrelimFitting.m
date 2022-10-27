@@ -1,7 +1,8 @@
 function [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,cutoff_height_pixels,...
     nearwall_bounds,background_totalfit,amplitudes,double_gauss_fitvariables,near_wall_extrap] = PrelimFitting(run,...
     imageData_mean,prerunData_mean,ypix,xpix,resolution,g1_location_col,ROI,numprelim_images,emissionlocatingdata,...
-    fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,lam_run_binary,single_run,freestream_est,cross_shock_run_binary)
+    fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,lam_run_binary,single_run,freestream_est,...
+    cross_shock_run_binary,flare_scale,near_wall_g1_scale)
 %this function performs preliminary fitting on the mean of the data that
 %can then be applied to individual images. The primary sub-functions are to
 %identify fitting bounds and observe background noise and fit it
@@ -45,6 +46,18 @@ cutoff_height_pixels = (cutoff_height_mm*1000)/resolution;
 surface_height = ceil(emissionlocatingdata(2))+1; %this is the location of the wall 
 cutoff_height_switchover = [round(surface_height-cutoff_height_pixels),surface_height,round(surface_height+cutoff_height_pixels)];
 
+    if single_run==5488 %off-axis run, very different
+        cutoff_height_mm = 2; %mm, estimated height where the boundary layer becomes really substantial and emissions start to slant to zero
+    elseif cross_shock_run_binary
+        cutoff_height_mm = 3; %mm, estimated height where the boundary layer becomes really substantial and emissions start to slant to zero
+    elseif lam_run_binary
+        cutoff_height_mm = 4; %mm, estimated height where the boundary layer becomes really substantial and emissions start to slant to zero
+    else
+        cutoff_height_mm = 2; %mm, estimated height where the boundary layer becomes really substantial and emissions start to slant to zero
+    end
+g1_thresh = (cutoff_height_mm*1000)/resolution;
+g1_fitline_above = round(surface_height-g1_thresh);
+
 %Getting the bounds as a function of height using the freestream values,
 %widths, and the gate locations
 g1_half_width = 6;
@@ -55,16 +68,16 @@ g2_half_width = 13;
 %% Fitting Background Noise
 [background_totalfit] = BackgroundFitter(run,imageData_mean,ypix,xpix,numprelim_images,synth_switch);
 
-%plotting
-close all;
-linwidth = 1;
-sw_dist = ((1:xpix)-freestream_gate_loc(1)).*scale*1000; %mm
-vt_dist = -1*((1:ypix)-surface_height).*scale*1000; %mm
-sw_dist = sw_dist';
-vt_dist = vt_dist';
-
-g1l = (gate1_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
-g2l = (gate2_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
+%plotting the fitting bounds over the image
+    close all;
+    linwidth = 1;
+    sw_dist = ((1:xpix)-freestream_gate_loc(1)).*scale*1000; %mm
+    vt_dist = -1*((1:ypix)-surface_height).*scale*1000; %mm
+    sw_dist = sw_dist';
+    vt_dist = vt_dist';
+    
+    g1l = (gate1_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
+    g2l = (gate2_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
 
     figure(1);
     image(sw_dist,vt_dist,imageData_mean);
@@ -87,28 +100,28 @@ g2l = (gate2_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
 %% Fitting the flare and providing a subtraction data set for near wall velocimetry
 imageData_mean_nobackground = imageData_mean-background_totalfit;
 [flare_g1_fit,nearwall_bounds,amplitudes,double_gauss_fitvariables,near_wall_extrap] = Time_Averaged_Gate_Fitter(imageData_mean_nobackground,...
-prerunData_mean,emissionlocatingdata,cutoff_height_pixels,...
+prerunData_mean,emissionlocatingdata,g1_fitline_above,...
 ypix,xpix,gate1_location_bounds,gate2_location_bounds,fitting_limits,run,numprelim_images,synth_switch,...
-resolution,background_totalfit,Delays,Gates,cfd_turb_prof);
+resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale);
 time_averaged_fit = background_totalfit+flare_g1_fit;
 
-    %plotting
-    figure;
-    image(imageData_mean-time_averaged_fit)
-    colorbar;
-    colormap(bone(4096));
-    hold on;
-    plot(gate1_location_bounds(:,1),1:ypix,'r');
-    hold on
-    plot(gate1_location_bounds(:,2),1:ypix,'b');
-    hold on;
-    plot(gate1_location_bounds(:,3),1:ypix,'r');
-    hold on;
-    plot(gate2_location_bounds(:,1),1:ypix,'r');
-    hold on
-    plot(gate2_location_bounds(:,2),1:ypix,'b');
-    hold on;
-    plot(gate2_location_bounds(:,3),1:ypix,'r');
+%     %plotting
+%     figure;
+%     image(imageData_mean-time_averaged_fit)
+%     colorbar;
+%     colormap(bone(4096));
+%     hold on;
+%     plot(gate1_location_bounds(:,1),1:ypix,'r');
+%     hold on
+%     plot(gate1_location_bounds(:,2),1:ypix,'b');
+%     hold on;
+%     plot(gate1_location_bounds(:,3),1:ypix,'r');
+%     hold on;
+%     plot(gate2_location_bounds(:,1),1:ypix,'r');
+%     hold on
+%     plot(gate2_location_bounds(:,2),1:ypix,'b');
+%     hold on;
+%     plot(gate2_location_bounds(:,3),1:ypix,'r');
 
 %     %% Making a single shot vs time-averaged figure for journal paper 
 %     %load single shot

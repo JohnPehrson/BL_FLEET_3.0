@@ -2,7 +2,7 @@ function [centroids,snr,centroid_error,R2,fitvariables,residual,nearwall_bounds,
     near_wall_extrap,signal] = Single_Image_Fitting(bkg_subtracted_imageData_ROI,...
     cutoff_height_pixels,emissionlocatingdata,gate1_location_bounds,gate2_location_bounds,...
                                     fitting_limits,Delays,Gates,run,resolution,rows,cfd_turb_prof,...
-                                    synth_switch)
+                                    synth_switch,near_wall_g1_scale)
 %This function fits a single image using a bunch of pre-processing
 %information. The program works by first fitting data above the wall where
 %the gates are far apart. The program then extrapolates the results down
@@ -23,9 +23,9 @@ function [centroids,snr,centroid_error,R2,fitvariables,residual,nearwall_bounds,
             %setup the bounds for near wall and not near wall indexes
             wall_yloc = ceil(emissionlocatingdata(2));
             max_len = size(bkg_subtracted_imageData_ROI,1);
-            nearwall_bounds = [wall_yloc-round(cutoff_height_pixels),max_len];
-            interp_bounds = [nearwall_bounds(1)-120,nearwall_bounds(1)-1];
-            not_wall_vec = [1:nearwall_bounds(1),nearwall_bounds(2):rows];
+            nearwall_bounds = [round(cutoff_height_pixels),max_len];
+            interp_bounds = [1,nearwall_bounds(1)-1];
+            not_wall_vec = [1:nearwall_bounds(1)];
         
             %fit the rows of data that aren't near the wall (minimal gate overlap)
             for i = not_wall_vec
@@ -35,15 +35,22 @@ function [centroids,snr,centroid_error,R2,fitvariables,residual,nearwall_bounds,
                     fitting_limits);
             end
 
-%%%%%%%%%%%%%% Extrapolating results up to the wall   %%%%%%%%%%%%%%%%%%%%%%%%
-%% Fitting gate 1 as a line (substantially above the wall) where there is good SNR
+%% Centroid Gate 1 as a line
+high_snr_binary = snr>(prctile(snr,50));
+c1_high_snr_rows = not_wall_vec(high_snr_binary);
+c1 = fitvariables(c1_high_snr_rows,2);
+p = polyfit(c1_high_snr_rows,c1,1);
+allrows = 1:rows;
+c1_line = transpose(polyval(p,allrows));
+fitvariables(:,2) = c1_line;
+
+%% Extrapolating g1 location and amplitude up to the wall
         [near_wall_extrap,g1_centroid_error_extrap,centroids_g1] = NearWallExtrap(interp_bounds,nearwall_bounds,fitvariables,Delays,...
-            Gates,resolution,wall_yloc,run,snr,rows,centroid_error,cfd_turb_prof,synth_switch); %provides the extrapolated g1 variables for the set of points contained by the nearwall_bounds
+            Gates,resolution,wall_yloc,run,snr,rows,centroid_error,cfd_turb_prof,synth_switch,near_wall_g1_scale); %provides the extrapolated g1 variables for the set of points contained by the nearwall_bounds
         centroids(:,1) = centroids_g1;
 
 %%%%%%%%%%%%%%%%%% Fitting Below the Switchover   %%%%%%%%%    
 extrap_fitting_limits = fitting_limits;
-min_amp_g1 = min(near_wall_extrap(interp_bounds(1):interp_bounds(2),1));
      for i = nearwall_bounds(1):nearwall_bounds(2)
             extrap_fitting_limits(:,2:3) = repmat(near_wall_extrap(i,2:3),3,1);
             extrap_fitting_limits(:,5) = gate2_location_bounds(i,:);

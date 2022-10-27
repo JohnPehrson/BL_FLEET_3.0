@@ -1,13 +1,13 @@
-function [flare_isolated_filtered_out,imageData_ROI_flaresubtracted] = Prerun_flare_processor(prerunData_mean,fitting_limits,emissionlocatingdata,gate1_location_bounds,run,imageData_ROI)
+function [flare_mask_reg,imageData_ROI_flaresubtracted] = Prerun_flare_processor(prerunData_mean,...
+    fitting_limits,emissionlocatingdata,gate1_location_bounds,imageData_mean,flare_scale)
 %This function takes the time-averaged data prior to the run alongside some
 %fitting bounds and uses it to isolate the reflected light coming out of
 %the beam port. 
 
-%% Fitting data
-    offset_from_surf = 25;
+%% Fitting prerun data
+    offset_from_surf = 20;
     rows_process = (emissionlocatingdata(2)-offset_from_surf);
     rowcounter = 1:size(prerunData_mean,2);
-
 
     options = optimset(@lsqcurvefit);
     options.Display = 'off';
@@ -34,127 +34,141 @@ for i = 1:rows_process
     [fitvariables_rows(i,:),~,residual,~,~,~,jacobian] = lsqnonlin(err_fit_gauss2,x0,LB,UB,options);
     fit_rows(i,:) = fit_gauss2(fitvariables_rows(i,:));
 
-%         figure;
+%         figure(3);
 %         scatter(rowcounter,onerow_data,'k','Linewidth',2);
 %         hold on;
 %         plot(rowcounter,fit_gauss2(fitvariables_rows(i,:)),':k','Linewidth',2);
 %         grid on;
 %         set(gca,'FontSize', 20);
 %         set(gca,'fontname','times')  % Set it to times
-%         disp('wait');
-
+%         hold off;
 end
 
-
-figure;
-title('fit');
-image(fit_rows)
-colorbar;
-colormap(turbo(1500));
-axis equal;
-set(gca, 'YDir','reverse')
-
-figure;
-title('subt.');
-image(prerunData_mean-fit_rows)
-colorbar;
-colormap(turbo(1500));
-axis equal;
-set(gca, 'YDir','reverse')
-
-%% Extrapolating data
-
-extrap_rows = (rows_process+1):size(prerunData_mean,1);
-
-extrap_height = 80;
-prefit_fitrows = (rows_process-extrap_height):rows_process;
-p_loc = polyfit(prefit_fitrows,fitvariables_rows(prefit_fitrows,2),1);
-p_width = polyfit(prefit_fitrows,fitvariables_rows(prefit_fitrows,3),1);
-p_amp = polyfit(prefit_fitrows,fitvariables_rows(prefit_fitrows,1),1);
-y_loc = polyval(p_loc,extrap_rows);
-y_width = polyval(p_width,extrap_rows);
-y_amp = polyval(p_amp,extrap_rows);
-
-test = (abs(length(extrap_rows)-(extrap_rows-min(extrap_rows))))./length(extrap_rows);
-
-        for i = extrap_rows
-        if i<(emissionlocatingdata(2)+3)
-            scale = 1;
-        else
-            scale = test(i-rows_process);
-        end
-
-        fitvariables_rows(i,:) = [scale.*y_amp(i-rows_process),y_loc(i-rows_process),y_width(i-rows_process)];
-        fit_rows(i,:) = fit_gauss2(fitvariables_rows(i,:));
-        end
-% 
+% close all;
 % figure;
-% title('ext. subt.');
-% image(prerunData_mean-fit_rows)
+% image(fit_rows)
 % colorbar;
-% colormap(turbo(3000));
+% colormap(turbo(1500));
 % axis equal;
 % set(gca, 'YDir','reverse')
+% title('fit');
+% 
+% 
+% figure;
+% image(prerunData_mean-fit_rows)
+% colorbar;
+% colormap(turbo(4096));
+% axis equal;
+% set(gca, 'YDir','reverse')
+% title('subt.');
+% 
 
 %% Do some filtering to just get the flare
 flare_isolated = prerunData_mean-fit_rows;
 passdata = (emissionlocatingdata(2)-offset_from_surf):(emissionlocatingdata(2)+offset_from_surf);
 flare_isolated_filtered = zeros(size(flare_isolated));
 flare_isolated_filtered(passdata,:) = flare_isolated(passdata,:);
+flare_isolated_filtered(flare_isolated<200) = 0;
+
+%% Do some filtering to just get the flare
+flare_isolated = prerunData_mean-fit_rows;
+passdata = (emissionlocatingdata(2)-offset_from_surf):(size(flare_isolated,1));
+flare_isolated_filtered = zeros(size(flare_isolated));
+flare_isolated_filtered(passdata,:) = flare_isolated(passdata,:);
 flare_isolated_filtered(flare_isolated<100) = 0;
 
-%% Gaussian Blur
-flare_isolated_filtered = imgaussfilt(flare_isolated_filtered,2);
+%% Locate the Ellipse template over the real image, looking to extract the flare near the wall
+half_height = 9; %pix
+half_width = 35; %pix
+
+f1 = figure;
+image(imageData_mean);
+set(gca,'YDir','reverse');
+colorbar;
+colormap(jet(round(max(imageData_mean(:)))));
+hold on;
+grid on;
+title('Image Mean with ROI')
+
+h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'SemiAxes',[half_width*1.5,half_height*1.5],'StripeColor','r');
+
+mask = createMask(h);
+mean_mask = imageData_mean.*mask;
 
 % figure;
-% title('Flare Surf');
-% image(flare_isolated_filtered)
+% image(mean_mask)
 % colorbar;
-% colormap(turbo(max(flare_isolated_filtered(:))));
+% colormap(turbo(max(mean_mask(:))));
 % axis equal;
 % set(gca, 'YDir','reverse')
+% title('Image Mean Mask')
+% 
 
-%% Move the flare to where it is during the actual run
-if (run==1)
-    left_move = 0;
-    move_up = 0;
-elseif(run==2)
-    left_move = 12;
-    move_up = 0;
-else
-    left_move = 0;
-    move_up = 0;
-end
+%% Locate the Ellipse template over the flare image
 
-flare_isolated_filtered_moved = imtranslate(flare_isolated_filtered,[-left_move, -emissionlocatingdata(3)-move_up],'FillValues',0);
+[~,height_max_loc] = max(sum(flare_isolated_filtered,2)); %for the vertical center location
+
+[amp,span_max_loc] = max(sum(flare_isolated_filtered,1));
+x = rowcounter;
+x0 = [amp,span_max_loc,half_width];
+LB = [200,min(x),half_width/3];
+UB = [4096,max(x),2*half_width];
+y = sum(flare_isolated_filtered,1);
+[fitvariables] = SingleGaussFit(x0,LB,UB,x,y);
+span_max_loc = fitvariables(2);
+
+f2 = figure;
+image(prerunData_mean);
+set(gca,'YDir','reverse');
+colorbar;
+colormap(jet(round(max(imageData_mean(:)))));
+title('Image Prerun Mask')
+
+h = drawellipse('Center',[span_max_loc,height_max_loc],'SemiAxes',[half_width,half_height],'StripeColor','r');
+
+
+mask = createMask(h);
+flare_mask = prerunData_mean.*mask;
+flare_mask = imgaussfilt(flare_mask,2);
 
 % figure;
-% title('Flare Surf');
-% image(flare_isolated_filtered_moved)
+% image(flare_mask)
 % colorbar;
-% colormap(turbo(max(flare_isolated_filtered_moved(:))));
+% colormap(turbo(max(flare_mask(:))));
 % axis equal;
-% set(gca, 'YDir','reverse')
+% set(gca, 'YDir','reverse');
+% title('Prerun Masked');
+
+
+%% Image Registration
+[optimizer, metric] = imregconfig('monomodal');
+flare_mask_reg = imregister(flare_mask,mean_mask,'translation',optimizer,metric);
+tform = imregtform(flare_mask,mean_mask,'translation',optimizer,metric);
+[x_trans,y_trans] = transformPointsForward(tform,height_max_loc,span_max_loc);
+    %manual additional translate to offset for g1-g2 biasing the flare
+    %emissions up
+    down_force = flare_scale(1); %pixels
+    flare_mask_reg = imtranslate(flare_mask_reg,[0, down_force]);
+x_rel = x_trans-height_max_loc+down_force; %pos is down
+y_rel = y_trans-span_max_loc; %pos is right
+
+% figure;
+% imshowpair(flare_mask_reg,mean_mask);
+% title('Registration')
 
 %% Subtraction
-
-if (run==1)
-    scale_flare = 0.8;
-elseif (run==2)
-    scale_flare = 0.4;
-else
-    scale_flare = 0.4;
-end
-flare_isolated_filtered_out = scale_flare.*flare_isolated_filtered_moved;
-imageData_ROI_flaresubtracted = imageData_ROI-flare_isolated_filtered_out;
+flare_mask_reg = flare_scale(2).*flare_mask_reg;
+imageData_ROI_flaresubtracted = imageData_mean-flare_mask_reg;
 imageData_ROI_flaresubtracted(imageData_ROI_flaresubtracted<0) = 0;
 
-figure;
-title('Flare Surf');
-image(imageData_ROI_flaresubtracted)
-colorbar;
-colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
-axis equal;
-set(gca, 'YDir','reverse')
+% figure;
+% title('Flare Surf');
+% image(imageData_ROI_flaresubtracted)
+% colorbar;
+% colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
+% axis equal;
+% set(gca, 'YDir','reverse')
+
+close([f1 f2])
 
 end
