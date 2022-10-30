@@ -1,5 +1,5 @@
 function [centroids,SNR,centroid_error,R2,fitvariables,total_sig,residual] = Curvefitting_nonlinlsqr_gauss(onerow_data,...
-    gaussfit_limits)
+    gaussfit_limits,row)
 %This function fits gaussian curves to a 2-D set of intensity values over a
 %pixel range. This function utilizes the nonlinear least squares fitting
 %method.
@@ -42,6 +42,7 @@ widths = gaussfit_limits(2,[3,6])';
         placed_fit = blank_row;
         placed_fit(g1_cols) = fit_gauss_g1(fitvariables_g1);
         onerow_data = onerow_data-placed_fit;
+        onerow_data(onerow_data<0) = 0;
 
         i=2; %gate 2
        %get data for the fitting
@@ -52,6 +53,23 @@ widths = gaussfit_limits(2,[3,6])';
         err_fit_gauss_g2 = @(v) fit_gauss_g2(v)-g2_onerow;
         %fit
         [fitvariables_g2,~,residual_g2,~,~,~,jacobian_g2] = lsqnonlin(err_fit_gauss_g2,x0(i,:),LB(i,:),UB(i,:),options);
+
+%         %Plotting
+%         if row>340
+%             figure(4);
+%             plot(g1_cols,g1_onerow,'k','Linewidth',2);
+%             hold on;
+%             plot(g1_cols,fit_gauss_g1(fitvariables_g1),'r','Linewidth',2);
+%             hold off;
+% 
+%             figure(5);
+%             plot(g2_cols,g2_onerow,'k','Linewidth',2);
+%             hold on;
+%             plot(g2_cols,fit_gauss_g2(fitvariables_g2),'r','Linewidth',2);
+%             hold off;
+%             disp('wait');
+% 
+%         end
 
 
 %% Confidence in fit
