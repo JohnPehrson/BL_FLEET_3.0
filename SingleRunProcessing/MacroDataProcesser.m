@@ -44,7 +44,7 @@ clear all;close all;clc;
 
     %Data processing inputs
     %5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495
-    run = [5484];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
+    run = [5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
     lam_runs = [5492;5493]; %these runs were closest behind the trips and should be fit with unique bounds to ensure the curve fitting algorithm can identify the gates
     cross_shock_runs = [5487;5488;5489];  %these runs were downstream the crossing shocks and thus the 'g2 bounds' should not approach the freestream
     total_im_process = 500; %NaN if process all
@@ -55,12 +55,12 @@ clear all;close all;clc;
                         4096,NaN,5,4096,NaN,7]; %LB,x0,UB
     rotation_angles = rotation_angles+90; %to offset for manually rotating the images when taking scaling shots
     freestream_est = 875/(1.05); %m/s, for bounding gates
-    flare_constants = [1,0.25;3,0.18;5,0.35;3,0.3;3,0.35;...
-                       4,0.1;3,.4;3,0.15;2,0.10;0,0.1;...
-                       3,0.25;4,0.45;-1,0.05;0,0.1];  %first column is moving down, second column is amplitude scale
+    flare_constants = [0,0.25,0;3,0.18,0;5,0.35,0;3,0.3,0;3,0.35,0;...
+                       4,0.1,0;3,.4,0;3,0.15,0;2,0.10,0;0,0.1,0;...
+                       3,0.25,0;4,0.45,0;-1,0.05,0;0,0.15,2];  %first column is moving down, second column is amplitude scale
     g1_scale_constants = [-0.5;.25;1;.5;.5;...
                           -1.7;-0.35;0.2;0.5;0.5;....
-                          0;0;.5;0.2]; %scales the amplitude of g1 near the wall. Pos for smaller G1, neg for bigger G1
+                          0;0;.5;.3]; %scales the amplitude of g1 near the wall. Pos for smaller G1, neg for bigger G1
 
 %%General Processing Loop of images
     %specify which runs to actually use
