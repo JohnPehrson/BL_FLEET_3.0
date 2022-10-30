@@ -32,7 +32,7 @@ function [centroids,snr,centroid_error,R2,fitvariables,residual,nearwall_bounds,
                 fitting_limits(:,2) = gate1_location_bounds(i,:);
                 fitting_limits(:,5) = gate2_location_bounds(i,:);
                 [centroids(i,:),snr(i),centroid_error(i,:),R2(i),fitvariables(i,:),signal(i,:),residual(i,:)] = Curvefitting_nonlinlsqr_gauss(bkg_subtracted_imageData_ROI(i,:),...
-                    fitting_limits);
+                    fitting_limits,i);
             end
 
 %% Centroid Gate 1 as a line
@@ -57,7 +57,7 @@ extrap_fitting_limits = fitting_limits;
             extrap_fitting_limits(:,1) = near_wall_extrap(i,1);
 
             [centroids(i,:),snr(i),centroid_error(i,:),R2(i),fitvariables(i,:),signal(i,:),residual(i,:)] = Curvefitting_nonlinlsqr_gauss(bkg_subtracted_imageData_ROI(i,:),...
-                extrap_fitting_limits);
+                extrap_fitting_limits,i);
      end
 
   centroid_error(:,1) = g1_centroid_error_extrap;
