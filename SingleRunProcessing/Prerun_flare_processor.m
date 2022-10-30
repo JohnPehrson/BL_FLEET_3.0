@@ -65,21 +65,14 @@ end
 
 %% Do some filtering to just get the flare
 flare_isolated = prerunData_mean-fit_rows;
-passdata = (emissionlocatingdata(2)-offset_from_surf):(emissionlocatingdata(2)+offset_from_surf);
-flare_isolated_filtered = zeros(size(flare_isolated));
-flare_isolated_filtered(passdata,:) = flare_isolated(passdata,:);
-flare_isolated_filtered(flare_isolated<200) = 0;
-
-%% Do some filtering to just get the flare
-flare_isolated = prerunData_mean-fit_rows;
 passdata = (emissionlocatingdata(2)-offset_from_surf):(size(flare_isolated,1));
 flare_isolated_filtered = zeros(size(flare_isolated));
 flare_isolated_filtered(passdata,:) = flare_isolated(passdata,:);
-flare_isolated_filtered(flare_isolated<100) = 0;
+flare_isolated_filtered(flare_isolated<150) = 0;
 
 %% Locate the Ellipse template over the real image, looking to extract the flare near the wall
-half_height = 9; %pix
-half_width = 35; %pix
+half_height = 8; %pix
+half_width = 40; %pix
 
 f1 = figure;
 image(imageData_mean);
@@ -90,19 +83,19 @@ hold on;
 grid on;
 title('Image Mean with ROI')
 
-h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'SemiAxes',[half_width*1.5,half_height*1.5],'StripeColor','r');
+h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'SemiAxes',[half_width,half_height],'StripeColor','r');
 
 mask = createMask(h);
 mean_mask = imageData_mean.*mask;
 
-% figure;
-% image(mean_mask)
-% colorbar;
-% colormap(turbo(max(mean_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% title('Image Mean Mask')
-% 
+figure;
+image(mean_mask)
+colorbar;
+colormap(turbo(max(mean_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse')
+title('Image Mean Mask')
+
 
 %% Locate the Ellipse template over the flare image
 
@@ -129,15 +122,14 @@ h = drawellipse('Center',[span_max_loc,height_max_loc],'SemiAxes',[half_width,ha
 
 mask = createMask(h);
 flare_mask = prerunData_mean.*mask;
-flare_mask = imgaussfilt(flare_mask,2);
 
-% figure;
-% image(flare_mask)
-% colorbar;
-% colormap(turbo(max(flare_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse');
-% title('Prerun Masked');
+figure;
+image(flare_mask)
+colorbar;
+colormap(turbo(max(flare_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse');
+title('Prerun Masked');
 
 
 %% Image Registration
@@ -148,26 +140,67 @@ tform = imregtform(flare_mask,mean_mask,'translation',optimizer,metric);
     %manual additional translate to offset for g1-g2 biasing the flare
     %emissions up
     down_force = flare_scale(1); %pixels
-    flare_mask_reg = imtranslate(flare_mask_reg,[0, down_force]);
+    flare_mask_reg = imtranslate(flare_mask_reg,[flare_scale(3), down_force]);
 x_rel = x_trans-height_max_loc+down_force; %pos is down
 y_rel = y_trans-span_max_loc; %pos is right
 
-% figure;
-% imshowpair(flare_mask_reg,mean_mask);
-% title('Registration')
+figure;
+imshowpair(flare_mask_reg,mean_mask);
+title('Registration')
+
+%% Scaling the flare to match the time-averaged mean flare emissions
+figure;
+subplot(1,3,1);
+image(flare_mask_reg)
+colorbar;
+colormap(turbo(max(mean_mask(:))));
+grid on;
+title('Prerun Mean')
+subplot(1,3,2);
+image(mean_mask)
+colorbar;
+colormap(turbo(max(mean_mask(:))));
+grid on;
+title('Run Mean')
+
+
+pix_diff = (flare_mask_reg-mean_mask)./flare_mask_reg;
+non_nan_pix_diff = pix_diff(~isnan(pix_diff));
+scale_down = prctile(non_nan_pix_diff,25);
+flare_mask_reg_scale = scale_down.*flare_mask_reg;
+
+subplot(1,3,3);
+image(flare_mask_reg_scale)
+colorbar;
+colormap(turbo(max(mean_mask(:))));
+grid on;
+title('Prerun Mean, Scaled')
+
+sig = 1;
+mean_mask_g = imgaussfilt(mean_mask,sig);
+flare_mask_g = imgaussfilt(flare_mask_reg_scale,sig);
+
+figure;
+mean_diff = mean_mask_g-flare_mask_g;
+image(mean_diff);
+colorbar;
+colormap(turbo(max(mean_mask_g(:))));
+grid on;
+title('Flare Subtracted')
+
+
 
 %% Subtraction
-flare_mask_reg = flare_scale(2).*flare_mask_reg;
-imageData_ROI_flaresubtracted = imageData_mean-flare_mask_reg;
+imageData_ROI_flaresubtracted = imageData_mean-flare_mask_g;
 imageData_ROI_flaresubtracted(imageData_ROI_flaresubtracted<0) = 0;
 
-% figure;
-% title('Flare Surf');
-% image(imageData_ROI_flaresubtracted)
-% colorbar;
-% colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
+figure;
+title('Time-average emissions with the light from the hole subtracted');
+image(imageData_ROI_flaresubtracted)
+colorbar;
+colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
+axis equal;
+set(gca, 'YDir','reverse')
 
 close([f1 f2])
 
