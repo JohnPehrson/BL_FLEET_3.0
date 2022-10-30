@@ -86,29 +86,49 @@ end
     c2 = resolution.*(fitvariables(:,5)-emissionlocatingdata(1))./1000;
 
     figure;
-    image(x_mm,y_mm,imageData_ROI)
+    image(x_mm,y_mm,imageData_ROI_flaresubtracted)
     colorbar;
-    colormap(jet(round(max(imageData_ROI(:)))));
+    colormap(jet(round(max(imageData_ROI_flaresubtracted(:)))));
     hold on;
-    plot(gb1(:,1),y_mm,'r');
+    plot(gb1(:,1),y_mm,'r','Linewidth',2);
     hold on
     plot(c1,y_mm,'k','Linewidth',2);
     hold on;
-    plot(gb1(:,3),y_mm,'r');
+    plot(gb1(:,3),y_mm,'r','Linewidth',2);
     hold on;
-    plot(gb2(:,1),y_mm,'r');
+    plot(gb2(:,1),y_mm,'r','Linewidth',2);
     hold on
     plot(c2,y_mm,'k','Linewidth',2);
     hold on;
-    plot(gb2(:,3),y_mm,'r');
+    plot(gb2(:,3),y_mm,'r','Linewidth',2);
     axis equal;
     set(gca, 'YDir','reverse')
     xlabel('Downstream Distance [mm]');
     ylabel('Height above the surface [mm]');
-    set(gca,'FontSize', 15);
+    set(gca,'FontSize', 20);
     set(gca,'fontname','times')  % Set it to times
     ax = gca;
     ax.YDir = 'normal';
+    legend('Emission Gate Bounds','Gate Fit')
+
+    figure;
+    image(x_mm,y_mm,prerunData_mean)
+    colorbar;
+    colormap(jet(round(max(prerunData_mean(:)))));
+    set(gca, 'YDir','reverse')
+    xlabel('Downstream Distance [mm]');
+    ylabel('Height above the surface [mm]');
+    set(gca,'FontSize', 20);
+    set(gca,'fontname','times')  % Set it to times
+    ax = gca;
+    ax.YDir = 'normal';
+    title('Prerun Average')
+
+
+    test = imageData_ROI_flaresubtracted>100;
+    figure;
+    imshow(test);
+
 
 %% Amplitudes for the decay fitting calculation
 amplitudes = fitvariables(:,[1,4]);
