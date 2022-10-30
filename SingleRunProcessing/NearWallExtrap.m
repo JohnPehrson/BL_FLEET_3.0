@@ -46,7 +46,7 @@ y_loc = y_loc_uncorrected;  %just fit as a simple line, no adjustment
     dist_from_wall = transpose(abs(wall_yloc-nearwall_list));
     linear_scaling = dist_from_wall/max(dist_from_wall);
     max_lin = max(linear_scaling);
-    exp_scaling = abs(linear_scaling).^1.5;
+    exp_scaling = abs(linear_scaling).^2;
     mult_fact = (1-near_wall_g1_scale)+exp_scaling*near_wall_g1_scale;
 
     frs_wall_again = [fitvariables(frs_list,1),frs_wall_g1fit',fitvariables(frs_list,3)];
