@@ -1,8 +1,9 @@
 function [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,cutoff_height_pixels,...
-    nearwall_bounds,background_totalfit,amplitudes,double_gauss_fitvariables,near_wall_extrap] = PrelimFitting(run,...
+    nearwall_bounds,background_totalfit,amplitudes,double_gauss_fitvariables,near_wall_extrap,...
+    centroids,snr,centroid_error,y_mm,gb1,gb2] = PrelimFitting(run,...
     imageData_mean,prerunData_mean,ypix,xpix,resolution,g1_location_col,ROI,numprelim_images,emissionlocatingdata,...
     fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,lam_run_binary,single_run,freestream_est,...
-    cross_shock_run_binary,flare_scale,near_wall_g1_scale)
+    cross_shock_run_binary,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset)
 %this function performs preliminary fitting on the mean of the data that
 %can then be applied to individual images. The primary sub-functions are to
 %identify fitting bounds and observe background noise and fit it
@@ -79,104 +80,54 @@ g2_half_width = 13;
     g1l = (gate1_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
     g2l = (gate2_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
 
-    figure(1);
-    image(sw_dist,vt_dist,imageData_mean);
-    set(gca,'YDir','normal');
-    colorbar;
-    colormap(jet(round(max(imageData_mean(:)))));
-    hold on;
-    plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
-    plot(g1l(:,1),vt_dist,'r','Linewidth',linwidth);
-    plot(g1l(:,3),vt_dist,'r','Linewidth',linwidth);
-    plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
-    plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
-    plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
-    xlabel('Streamwise Distance [mm]')
-    ylabel('Vertical Distance [mm]')
-    title(['Fitting Bounds for Run',num2str(single_run)])
-    grid on;
-    legend('Estimated Gate Location','Gate Bounds')
+%     figure(1);
+%     image(sw_dist,vt_dist,imageData_mean);
+%     set(gca,'YDir','normal');
+%     colorbar;
+%     colormap(jet(round(max(imageData_mean(:)))));
+%     hold on;
+%     plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g1l(:,1),vt_dist,'r','Linewidth',linwidth);
+%     plot(g1l(:,3),vt_dist,'r','Linewidth',linwidth);
+%     plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
+%     plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
+%     xlabel('Streamwise Distance [mm]')
+%     ylabel('Vertical Distance [mm]')
+%     title(['Fitting Bounds for Run',num2str(single_run)])
+%     grid on;
+%     legend('Estimated Gate Location','Gate Bounds')
+
 
 %% Fitting the flare and providing a subtraction data set for near wall velocimetry
 imageData_mean_nobackground = imageData_mean-background_totalfit;
-[flare_g1_fit,nearwall_bounds,amplitudes,double_gauss_fitvariables,near_wall_extrap] = Time_Averaged_Gate_Fitter(imageData_mean_nobackground,...
-prerunData_mean,emissionlocatingdata,g1_fitline_above,...
+prerunData_mean_nobackground = prerunData_mean-background_totalfit;
+[flare_g1_fit,nearwall_bounds,amplitudes,double_gauss_fitvariables,near_wall_extrap,...
+centroids,snr,centroid_error,y_mm,gb1,gb2] = ...
+Time_Averaged_Gate_Fitter(imageData_mean_nobackground,...
+prerunData_mean_nobackground,emissionlocatingdata,g1_fitline_above,...
 ypix,xpix,gate1_location_bounds,gate2_location_bounds,fitting_limits,run,numprelim_images,synth_switch,...
-resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale);
+resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset);
+
 time_averaged_fit = background_totalfit+flare_g1_fit;
+mean_background_subt = imageData_mean-time_averaged_fit;
+    %plotting
+    figure;
+    image(mean_background_subt)
+    colorbar;
+    colormap(jet(round(max(mean_background_subt(:)))));
+    hold on;
+    plot(gate1_location_bounds(:,1),1:ypix,'r');
+    hold on
+    plot(gate1_location_bounds(:,2),1:ypix,'b');
+    hold on;
+    plot(gate1_location_bounds(:,3),1:ypix,'r');
+    hold on;
+    plot(gate2_location_bounds(:,1),1:ypix,'r');
+    hold on
+    plot(gate2_location_bounds(:,2),1:ypix,'b');
+    hold on;
+    plot(gate2_location_bounds(:,3),1:ypix,'r');
 
-%     %plotting
-%     figure;
-%     image(imageData_mean-time_averaged_fit)
-%     colorbar;
-%     colormap(bone(4096));
-%     hold on;
-%     plot(gate1_location_bounds(:,1),1:ypix,'r');
-%     hold on
-%     plot(gate1_location_bounds(:,2),1:ypix,'b');
-%     hold on;
-%     plot(gate1_location_bounds(:,3),1:ypix,'r');
-%     hold on;
-%     plot(gate2_location_bounds(:,1),1:ypix,'r');
-%     hold on
-%     plot(gate2_location_bounds(:,2),1:ypix,'b');
-%     hold on;
-%     plot(gate2_location_bounds(:,3),1:ypix,'r');
-
-%     %% Making a single shot vs time-averaged figure for journal paper 
-%     %load single shot
-%     single_shot_filepath = "C:\Users\clark\Documents\Grad_Research\Data\Feb_FLEET\Test1_Feb_C001H001S0001\Test1_Feb_C001H001S0001019853.tif";
-%     singleshot_image = double(imread(single_shot_filepath));
-%     singleshot_ROI = singleshot_image(ROI(1):ROI(2),ROI(3):ROI(4));
-%     singleshot_ROI =  rot90(singleshot_ROI,2);
-%     
-%     %trim data to only be above the surface
-%     imageData_mean_subtracted = imageData_mean-time_averaged_fit;
-%     singleshot_subtracted = singleshot_ROI-time_averaged_fit;
-%     imageData_mean_abovesurface = imageData_mean;
-%     singleshot_ROI_abovesurface = singleshot_ROI;
-%     imageData_mean_subtracted_abovesurface = imageData_mean_subtracted;
-%     singleshot_subtracted = singleshot_subtracted;
-%     
-%     pix2mm = resolution/1000;
-%     zeroheight = (size(singleshot_ROI_abovesurface,1)-(emissionlocatingdata(2))+45).*pix2mm;
-%     x = (1:size(singleshot_ROI_abovesurface,2)).*pix2mm+135;
-%     y = (size(singleshot_ROI_abovesurface,1):-1:1).*pix2mm-zeroheight;
-%     
-%     figure;
-%     subplot(1,2,1);
-%     image(x,y,singleshot_subtracted)
-%     set(gca,'YDir','normal');
-%     colormap(hot(4096));
-%     set(gca,'FontSize', 20);
-%     set(gca,'fontname','times')  % Set it to times
-% 
-%     subplot(1,2,2);
-%     image(x,y,imageData_mean_subtracted_abovesurface)
-%     set(gca,'YDir','normal');
-%     colormap(hot(4096));
-%     set(gca,'FontSize', 20);
-%     set(gca,'fontname','times')  % Set it to times
-%     xlabel('Distance Downstream the Tripping Array [mm]')
-% 
-% 
-%  
-%     figure;
-%     image(x,y,imageData_mean_abovesurface)
-%     set(gca,'YDir','normal');
-%     colormap(hot(4096));
-%     colorbar;
-%     set(gca,'FontSize', 20);
-%     set(gca,'fontname','times')  % Set it to times
-%     xlabel('Distance Downstream the Tripping Array [mm]')
-%     ylabel('Height above the Surface [mm]')
-
-% 
-% %Time averaged fitting to look for image artefacts
-% rows = 90:160;
-% sumrows_mean = mean(imageData_mean(rows,:));
-% figure;
-% plot(1:length(sumrows_mean),sumrows_mean);
-% 
 end
 

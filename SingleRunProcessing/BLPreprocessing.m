@@ -2,11 +2,11 @@ function [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_
     gate2_location_bounds,time_averaged_fit,emissionlocatingdata,cutoff_height_pixels,...
     tau_fit,doublegauss_fitvariables,...
     background_totalfit,nearwall_bounds,...
-    near_wall_extrap,total_sig_thresh,cfd_turb_prof,...
+    near_wall_extrap,threshs,threshs_flare,cfd_turb_prof,...
     zero_height_ref_unc,numprelim_images,imageprocesscount] = BLPreprocessing(run,run_filepaths,run_timelimits,run_timelimits_flare,...
     ROI,fitting_limits,synthfilepath,synth_switch,synth_numimages,total_im_process,total_im_preprocess,...
     CFD_turbulent_profile_filepath,synth_real_replicate,rot_angle,resolution,Gates,Delays,lam_run_binary,...
-    single_run,top_offset,freestream_est,cross_shock_run_binary,flare_scale,near_wall_g1_scale)
+    single_run,top_offset,freestream_est,cross_shock_run_binary,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset)
 %This function will perform basic preprocessing operations related to temporal identification, 
 %mean image data, image bounding/ROI, filtering, fitting bounding. Also
 %calculate decay constant
@@ -79,7 +79,7 @@ else  %real data
             numprelim_images_flare = size(ROI_imagedata_flare,2);
 
             %save data for next time
-            save(savename_flare,'ROI_imagedata_flare','numprelim_images_flare');
+            save(savename_flare,'ROI_imagedata_flare','numprelim_images_flare','threshs_flare');
         end
 
     %% Real Data Information
@@ -123,18 +123,26 @@ else  %real data
             numprelim_images = size(ROI_imagedata,2);
 
             %save data for next time
-            save(savename,'ROI_imagedata','numprelim_images');
+            save(savename,'ROI_imagedata','numprelim_images','threshs');
         end
+end
+%% Image registration with preprocessing data
+xlength = length(ROI(1):ROI(2));
+ylength = length(ROI(3):ROI(4));
+im_reg_savename = ['Preprocessing_Filestorage\PreprocessingImageReg',num2str(run),'_RunImages_',num2str(numprelim_images),'_PreImages_',num2str(numprelim_images_flare),'.mat'];
+
+if isfile(im_reg_savename) %if it has been done before, don't redo it, just load it
+    load(im_reg_savename);
+else
+    [ROI_imagedata] = Preprocessing_Image_Registrar(ROI_imagedata,xlength,ylength);
+    [ROI_imagedata_flare] = Preprocessing_Image_Registrar(ROI_imagedata_flare,xlength,ylength);
+    save(im_reg_savename,'ROI_imagedata','ROI_imagedata_flare');
 end
 
 %% Load in the CFD turbulent boundary layer, primarily for bounding and gate-1 modifications
 [cfd_turb_prof] = LoadCFD_turb_BL(CFD_turbulent_profile_filepath,resolution(1));
 
 %% Filtering and getting the outlier bounds
-totalimages = run_timelimits(1):run_timelimits(2);
-xlength = length(ROI(1):ROI(2));
-ylength = length(ROI(3):ROI(4));
-
 savename_spots = ['Preprocessing_Filestorage\PreprocessingSpotBounds',num2str(run),'_Images_',num2str(numprelim_images_flare),'.mat'];
         if isfile(savename_spots) %if it has been done before, don't redo it, just load it
                 load(savename_spots);
@@ -154,15 +162,21 @@ end
 
 %% Preliminaty fitting (background, local, gates) and fitting bounds
 [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,cutoff_height_pixels,...
-    nearwall_bounds,background_totalfit,amplitudes,doublegauss_fitvariables,near_wall_extrap] = PrelimFitting(run,...
+    nearwall_bounds,background_totalfit,amplitudes,doublegauss_fitvariables,near_wall_extrap,...
+    centroids,snr,centroid_error,y_mm,gb1,gb2] = PrelimFitting(run,...
     imageData_mean,prerunData_mean,xlength,ylength,resolution(1),g1_location_col,ROI,...
     numprelim_images,emissionlocatingdata,fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,...
-    lam_run_binary,single_run,freestream_est,cross_shock_run_binary,flare_scale,near_wall_g1_scale);
+    lam_run_binary,single_run,freestream_est,cross_shock_run_binary,flare_scale,near_wall_g1_scale,...
+    create_prerun_flare_dataset);
 background_totalfit = mean(background_totalfit(:));
 
 %% Calculating Decay Constant
 [tau_fit] = IntensityDecay(imageData_mean,time_averaged_fit,resolution(1),...
     gate1_location_bounds,gate2_location_bounds,Gates,Delays,fitting_limits,nearwall_bounds,...
     background_totalfit,amplitudes);
+
+%% Saving out time-averaged stuff
+save_centroid_fit = ['ProcessedData/Time_Average_Fit_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
+  save(save_centroid_fit,'run','centroids','snr','centroid_error','numprelim_images','y_mm','gb1','gb2','tau_fit','zero_height_ref_unc');
 
 end

@@ -54,24 +54,6 @@ widths = gaussfit_limits(2,[3,6])';
         %fit
         [fitvariables_g2,~,residual_g2,~,~,~,jacobian_g2] = lsqnonlin(err_fit_gauss_g2,x0(i,:),LB(i,:),UB(i,:),options);
 
-%         %Plotting
-%         if row>340
-%             figure(4);
-%             plot(g1_cols,g1_onerow,'k','Linewidth',2);
-%             hold on;
-%             plot(g1_cols,fit_gauss_g1(fitvariables_g1),'r','Linewidth',2);
-%             hold off;
-% 
-%             figure(5);
-%             plot(g2_cols,g2_onerow,'k','Linewidth',2);
-%             hold on;
-%             plot(g2_cols,fit_gauss_g2(fitvariables_g2),'r','Linewidth',2);
-%             hold off;
-%             disp('wait');
-% 
-%         end
-
-
 %% Confidence in fit
 %centroids
 ci_g1 = nlparci(fitvariables_g1,residual_g1,'jacobian',jacobian_g1);   %  95% confidence intervals for the fit coefficients

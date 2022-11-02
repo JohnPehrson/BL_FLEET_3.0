@@ -124,7 +124,6 @@ plot(PB_mean_velo,PB_height,'g','Linewidth',2);
  plot(PB_mean_velo+PB_mean_velo_u,PB_height,':g','Linewidth',1.5);
 % plot(PB_mean_velo-PB_mean_velo_u,PB_height,':g','Linewidth',2);
 
-
 plot(synth_mean_velo,synth_height,'b','Linewidth',2);
 plot(synth_mean_velo+synth_mean_velo_u,synth_height,':b','Linewidth',1.5);
 

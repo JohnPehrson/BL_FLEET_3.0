@@ -34,6 +34,7 @@ end
     ylabel('Pixels in the Image');
     title('Decay Constant Fitting Real Data');
     set(gca, 'YDir','reverse')
+    
 
 end
 

@@ -14,11 +14,11 @@ tform = imregtform(imageData_ROI,imageData_mean,'translation',optimizer,metric);
 x = emissionlocatingdata(1);
 y = emissionlocatingdata(2);
 [x_trans,y_trans] = transformPointsForward(tform,x,y);
-%x_rel = x_trans-x;
+x_rel = x_trans-x;
 y_rel = y_trans-y;
 
 %% Move image ROI
 %imageData_ROI_translated
-move_ROI_ud = y_rel;
+move_ROI_ud = [x_rel,y_rel];
 
 end

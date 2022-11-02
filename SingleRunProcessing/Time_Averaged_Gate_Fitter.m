@@ -1,7 +1,8 @@
-function [flare_data,nearwall_bounds,amplitudes,fitvariables,near_wall_extrap] = Time_Averaged_Gate_Fitter(imageData_ROI,prerunData_mean,...
+function [flare_data,nearwall_bounds,amplitudes,fitvariables,near_wall_extrap,...
+    centroids,snr,centroid_error,y_mm,gate1_location_bounds,gate2_location_bounds] = Time_Averaged_Gate_Fitter(imageData_ROI,prerunData_mean,...
     emissionlocatingdata,cutoff_height_pixels,rows,cols,gate1_location_bounds,gate2_location_bounds,...
     fitting_limits,run,numprelim_images,synth_switch,resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,...
-    single_run,flare_scale,near_wall_g1_scale)
+    single_run,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset)
 %This function provides a 2d set of data that represent the first gate and
 %flare data near the wall. Subtracting this 2d set of data from a
 %time-resolved image should result in an image that can be fit with a
@@ -13,13 +14,15 @@ savename = ['Preprocessing_Filestorage/NearWallFit_Run',num2str(run),'_',num2str
 end
     %% Check if a background fit already exists
     if isfile(savename) %if it has been done before, don't redo it, just load it
-        load(savename,'flare_data','nearwall_bounds','amplitudes','fitvariables','near_wall_extrap');
+        load(savename,'flare_data','nearwall_bounds','amplitudes','fitvariables','near_wall_extrap',...
+            'centroids','snr','centroid_error','y_mm','gate1_location_bounds','gate2_location_bounds');
     else % fit doesn't already exist, compute a fit here
     
     %% Prerun reference analysis to subtract time-average reflected light from the beam port
     if (~synth_switch)
     [flare_data,imageData_ROI_flaresubtracted] = Prerun_flare_processor(prerunData_mean,fitting_limits,...
-        emissionlocatingdata,gate1_location_bounds,imageData_ROI,flare_scale);
+        emissionlocatingdata,gate1_location_bounds,imageData_ROI,flare_scale,create_prerun_flare_dataset,...
+        single_run);
     else
     flare_data = zeros(size(imageData_ROI));
     imageData_ROI_flaresubtracted = imageData_ROI;
@@ -110,30 +113,26 @@ end
     ax = gca;
     ax.YDir = 'normal';
     legend('Emission Gate Bounds','Gate Fit')
-
-    figure;
-    image(x_mm,y_mm,prerunData_mean)
-    colorbar;
-    colormap(jet(round(max(prerunData_mean(:)))));
-    set(gca, 'YDir','reverse')
-    xlabel('Downstream Distance [mm]');
-    ylabel('Height above the surface [mm]');
-    set(gca,'FontSize', 20);
-    set(gca,'fontname','times')  % Set it to times
-    ax = gca;
-    ax.YDir = 'normal';
-    title('Prerun Average')
-
-
-    test = imageData_ROI_flaresubtracted>100;
-    figure;
-    imshow(test);
+% 
+%     figure;
+%     image(x_mm,y_mm,prerunData_mean)
+%     colorbar;
+%     colormap(jet(round(max(prerunData_mean(:)))));
+%     set(gca, 'YDir','reverse')
+%     xlabel('Downstream Distance [mm]');
+%     ylabel('Height above the surface [mm]');
+%     set(gca,'FontSize', 20);
+%     set(gca,'fontname','times')  % Set it to times
+%     ax = gca;
+%     ax.YDir = 'normal';
+%     title('Prerun Average')
 
 
-%% Amplitudes for the decay fitting calculation
-amplitudes = fitvariables(:,[1,4]);
+    %% Amplitudes for the decay fitting calculation
+    amplitudes = fitvariables(:,[1,4]);
 
   %% Saving the filter for later use if needed
-      save(savename,'flare_data','nearwall_bounds','amplitudes','fitvariables','near_wall_extrap');
+      save(savename,'flare_data','nearwall_bounds','amplitudes','fitvariables','near_wall_extrap',...
+          'centroids','snr','centroid_error','y_mm','gate1_location_bounds','gate2_location_bounds');
     end
 end
