@@ -82,25 +82,25 @@ if create_prerun_flare_dataset
             flare_isolated = prerunData_mean-fit_rows;
         
         
-%         %% Plotting the prerun flare with and without the fitting
-%         close all;
-%         figure;
-%         subplot(1,2,1);
-%         image(prerunData_mean)
-%         colorbar;
-%         colormap(jet(round(max(prerunData_mean(:)))));
-%         axis equal;
-%         set(gca, 'YDir','reverse')
-%         title('Prerun Image')
-%         
-%         
-%         subplot(1,2,2);
-%         image(flare_isolated)
-%         colorbar;
-%         colormap(jet(round(max(prerunData_mean(:)))));
-%         axis equal;
-%         set(gca, 'YDir','reverse')
-%         title('Prerun Image with G1 subtracted')
+        %% Plotting the prerun flare with and without the fitting
+        close all;
+        figure;
+        subplot(1,2,1);
+        image(prerunData_mean)
+        colorbar;
+        colormap(jet(round(max(prerunData_mean(:)))));
+        axis equal;
+        set(gca, 'YDir','reverse')
+        title('Prerun Image')
+        
+        
+        subplot(1,2,2);
+        image(flare_isolated)
+        colorbar;
+        colormap(jet(round(max(prerunData_mean(:)))));
+        axis equal;
+        set(gca, 'YDir','reverse')
+        title('Prerun Image with G1 subtracted')
         
         %% Isolate the prerun flare using an ellipse
             %basic filtering to get the general area of the flare
@@ -142,7 +142,7 @@ if create_prerun_flare_dataset
          %filtering to only get the brightest part of the flare
         prerun_mask_bright = prerun_mask.*(prerun_mask>prctile(prerun_mask(:),40));
         prerun_mask = imgaussfilt(prerun_mask,sigma_gfilt);
-
+% 
 %         figure;
 %         image(prerun_mask_bright);
 %         set(gca,'YDir','reverse');
@@ -175,7 +175,7 @@ h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'Semi
 mask = createMask(h);
 mean_mask = imageData_mean.*mask;
 
-%% Comparing the prerun flare to the actual run flare
+% %% Comparing the prerun flare to the actual run flare
 % figure;
 % subplot(1,2,1);
 % image(prerun_mask)
@@ -232,13 +232,13 @@ flare_mask_reg_scale = flare_mask_reg.*flare_scale(2);
 imageData_ROI_flaresubtracted = imageData_mean-flare_mask_reg_scale;
 imageData_ROI_flaresubtracted(imageData_ROI_flaresubtracted<0) = 0;
 
-% figure;
-% title('Time-average emissions with the light from the hole subtracted');
-% image(imageData_ROI_flaresubtracted)
-% colorbar;
-% colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
+figure;
+title('Time-average emissions with the light from the hole subtracted');
+image(imageData_ROI_flaresubtracted)
+colorbar;
+colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
+axis equal;
+set(gca, 'YDir','reverse')
 
 close([f1])
 
