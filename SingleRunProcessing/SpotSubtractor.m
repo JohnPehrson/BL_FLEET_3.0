@@ -1,4 +1,4 @@
-function [filt_median,UB,LB] = SpotSubtractor(single_images_long,xlength,ylength)
+function [filt_median,UB,LB] = SpotSubtractor(single_images_long,xlength,ylength,run)
 %This function will identify and eliminate bright spots from instantaneous
 %images. Inputs are as follows
 %--median_long, an n by 1 matrix, where n is number of total pixels (x*y)
@@ -11,6 +11,11 @@ function [filt_median,UB,LB] = SpotSubtractor(single_images_long,xlength,ylength
     median_long = mean(single_images_long,2);
     total_pix = length(median_long);
     numims = size(single_images_long,2);
+    if run~=3
+        remain_outliers = 100;
+    else
+        remain_outliers = 500;
+    end
 
 %% Identify outliers iteratively
     A = 2.2;               %Difference from the median the bright spots must be in terms of number of standard deviations 
@@ -25,7 +30,7 @@ function [filt_median,UB,LB] = SpotSubtractor(single_images_long,xlength,ylength
     indexes = find(binaryoutlier); %indexes of pixels where at least one image-pixel is an outlier
     outliercount = sum(binaryoutlier); %counts number of pixels where outliers are present
     
-    while outliercount>100 %while there are still outliers, set as 100 to allow for hard-to-remove last ones
+    while outliercount>remain_outliers %while there are still outliers, set as 100 to allow for hard-to-remove last ones
 
         %filter out the maximum value in the indicated rows
         for i = 1:length(indexes)

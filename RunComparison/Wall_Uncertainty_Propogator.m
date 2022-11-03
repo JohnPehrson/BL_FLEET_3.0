@@ -14,7 +14,7 @@ function [uncertainty_mean_velo_wall_loc,height_unc] = Wall_Uncertainty_Propogat
             %provide result
                 uncertainty_mean_velo_wall_loc = (abs(velo_dn-mean_velocity)+abs(velo_up-mean_velocity))/2;
 
-            %plot
+%             %plot
 %                 figure;
 %                 subplot(1,2,1);
 %                 plot(mean_velocity,heights,'b','Linewidth',2);
@@ -35,6 +35,6 @@ function [uncertainty_mean_velo_wall_loc,height_unc] = Wall_Uncertainty_Propogat
 %                 xlim([0,50]);
 %                 xlabel('Velocity Uncertainty [m/s]')
 %                 title('Uncertainty due to wall location Finding')
-% 
+
 
 end

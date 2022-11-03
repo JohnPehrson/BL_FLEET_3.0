@@ -147,8 +147,8 @@ savename_spots = ['Preprocessing_Filestorage\PreprocessingSpotBounds',num2str(ru
         if isfile(savename_spots) %if it has been done before, don't redo it, just load it
                 load(savename_spots);
             else % Bounds don't already exist, compute them
-                [imageData_mean,dust_filter_bounds_top,dust_filter_bounds_bottom] = SpotSubtractor(ROI_imagedata,xlength,ylength); %for run
-                [prerunData_mean,~,~] = SpotSubtractor(ROI_imagedata_flare,xlength,ylength); %for prerun
+                [imageData_mean,dust_filter_bounds_top,dust_filter_bounds_bottom] = SpotSubtractor(ROI_imagedata,xlength,ylength,run); %for run
+                [prerunData_mean,~,~] = SpotSubtractor(ROI_imagedata_flare,xlength,ylength,run); %for prerun
                 save(savename_spots,'imageData_mean','dust_filter_bounds_top','dust_filter_bounds_bottom','prerunData_mean')
         end
 

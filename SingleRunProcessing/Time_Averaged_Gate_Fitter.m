@@ -113,6 +113,9 @@ end
     ax = gca;
     ax.YDir = 'normal';
     legend('Emission Gate Bounds','Gate Fit')
+    xlim([-0.5,1]);
+    ylim([-0.25,1.25]);
+
 % 
 %     figure;
 %     image(x_mm,y_mm,prerunData_mean)

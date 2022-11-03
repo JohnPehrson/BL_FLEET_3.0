@@ -15,6 +15,7 @@ g1_location_col = maxind;
 
 %% Location the emissions in dy (finding the location of the bright spot near the surface) for the real data
 
+if run ~= 12
     %max
         x = 1:drow;
         sum_half_width = 12;
@@ -47,7 +48,33 @@ g1_location_col = maxind;
     
             [fitvariables,~,residual,~,~,~,jacobian] = lsqnonlin(err_fit_gauss_g1,x0,LB,UB,options);
             ci_g1 = nlparci(fitvariables,residual,'jacobian',jacobian);   %  95% confidence intervals for the fit coefficients
+            wallfit_location_col = fitvariables(2);
             zero_height_ref_unc = [(ci_g1(2,2)-ci_g1(2,1))/2]; 
+
+        figure;
+        image(imageData_mean)
+        colorbar;
+        colormap(turbo(max(imageData_mean(:))));
+        axis equal;
+        set(gca, 'YDir','reverse')
+
+else %run 12 only
+    %fit with polynomial, find inflection point
+        wallfit_location_col = 353;
+        zero_height_ref_unc = [2]; 
+
+%     %plot
+%         figure;
+%         subplot(2,1,1);
+%         plot(x,rowaverage);
+%         hold on;
+%         plot(x_trim,fit_rows,'k','Linewidth',2)
+% 
+%         subplot(2,1,2);
+%         plot(xdif,diff_rowavg);
+
+end
+
 
 %% Location the emissions in dy (finding the location of the bright spot near the surface) for the prerun data
    
