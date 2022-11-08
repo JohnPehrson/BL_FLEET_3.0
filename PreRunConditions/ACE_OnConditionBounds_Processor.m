@@ -10,6 +10,7 @@ clear all;close all;clc;
     DAQ_times = cell(length(uniqueruns),1);
     DAQ_Res = cell(length(uniqueruns),1);
     DAQ_Machs = cell(length(uniqueruns),1);
+    DAQ_Velos = cell(length(uniqueruns),1);
     DAQ_start_stops = zeros(length(uniqueruns),2);
     DAQ_start_stops(:,2) = [24.4;26.4;24.3;28.1;26.9;...
                             27.6;26.6;28.5;19.5;30.4;25.9;...
@@ -19,6 +20,7 @@ clear all;close all;clc;
     target_Re_unc = 0.1*10^6;
     Run_Re = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
     Run_Mach = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
+    Run_Mean_Velo = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
 
 
 %only load ACE DAQ in if I haven't before
@@ -48,14 +50,16 @@ savename_DAQ = "DAQ_Reynolds.mat";
                 single_DAQ_time = readmatrix(full_filepath,'Sheet','Reduced Data','Range','A2:A1000'); %seconds
                 single_DAQ_Re = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AY2:AY1000');
                 single_DAQ_Mach = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AZ2:AZ1000');
+                single_DAQ_Velos = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AW2:AW1000');
     
                 %put the single run data into a macro-variable
                 DAQ_times{k} = single_DAQ_time;
                 DAQ_Res{k} = single_DAQ_Re;
                 DAQ_Machs{k} = single_DAQ_Mach;
+                DAQ_Velos{k} = single_DAQ_Velos;
             end
 
-            save(savename_DAQ,'DAQ_times','DAQ_Res','DAQ_Machs');
+            save(savename_DAQ,'DAQ_times','DAQ_Res','DAQ_Machs','DAQ_Velos');
     end %end of the if loop to load in data
 
 %% Finding the steady state start and stop time for the ACE Tunnel
@@ -127,15 +131,20 @@ for i = 1:length(uniqueruns)
     single_times = DAQ_times{i};
     single_Res = DAQ_Res{i};
     single_Machs = DAQ_Machs{i};
+    single_Velos = DAQ_Velos{i};
 
     binary_run = (single_times>=DAQ_start_stops(i,1))&(single_times<=DAQ_start_stops(i,2));
     mean_Re = mean(single_Res(binary_run));
     mean_Mach = mean(single_Machs(binary_run));
+    mean_Velos = mean(single_Velos(binary_run));
 
     doublestd_Re = 2*std(single_Res(binary_run));
     doublestd_Mach = 2*std(single_Machs(binary_run));
+    doublestd_Velos = 2*std(single_Velos(binary_run));
+
     Run_Re(i,:) = [mean_Re,doublestd_Re];
     Run_Mach(i,:) = [mean_Mach,doublestd_Mach];
+    Run_Mean_Velo(i,:) = [mean_Velos,doublestd_Velos];
 end
 
 Run_Re_scaled = Run_Re/(10^6);
@@ -182,7 +191,8 @@ DAQ_start_stops = DAQ_start_stops.*1000;
 DAQ_flare_start_stop(:,1) = 1;
 
 
+
 %% Save out Data
 save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat',...
-    'Run_Re_scaled','DAQ_start_stops','DAQ_flare_start_stop');
+    'Run_Re_scaled','DAQ_start_stops','DAQ_flare_start_stop','Run_Mach','Run_Mean_Velo');
 
