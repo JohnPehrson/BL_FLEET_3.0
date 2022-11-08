@@ -175,23 +175,23 @@ h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'Semi
 mask = createMask(h);
 mean_mask = imageData_mean.*mask;
 
-% %% Comparing the prerun flare to the actual run flare
-% figure;
-% subplot(1,2,1);
-% image(prerun_mask)
-% colorbar;
-% colormap(turbo(max(prerun_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% title('Image Prerun Mask')
-% 
-% subplot(1,2,2);
-% image(mean_mask)
-% colorbar;
-% colormap(turbo(max(prerun_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% title('Image Mean Mask')
+%% Comparing the prerun flare to the actual run flare
+figure;
+subplot(1,2,1);
+image(prerun_mask)
+colorbar;
+colormap(turbo(max(prerun_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse')
+title('Image Prerun Mask')
+
+subplot(1,2,2);
+image(mean_mask)
+colorbar;
+colormap(turbo(max(prerun_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse')
+title('Image Mean Mask')
 
 %% Put the prerun flare fit into a matrix the size of the mean
 flare_mat = zeros(size(mean_mask));

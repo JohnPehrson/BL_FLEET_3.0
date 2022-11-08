@@ -70,7 +70,6 @@ g2_half_width = 13;
 [background_totalfit] = BackgroundFitter(run,imageData_mean,ypix,xpix,numprelim_images,synth_switch);
 
 %plotting the fitting bounds over the image
-    close all;
     linwidth = 1;
     sw_dist = ((1:xpix)-freestream_gate_loc(1)).*scale*1000; %mm
     vt_dist = -1*((1:ypix)-surface_height).*scale*1000; %mm
@@ -80,23 +79,23 @@ g2_half_width = 13;
     g1l = (gate1_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
     g2l = (gate2_location_bounds-freestream_gate_loc(1)).*scale*1000; %mm
 
-%     figure(1);
-%     image(sw_dist,vt_dist,imageData_mean);
-%     set(gca,'YDir','normal');
-%     colorbar;
-%     colormap(jet(round(max(imageData_mean(:)))));
-%     hold on;
-%     plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
-%     plot(g1l(:,1),vt_dist,'r','Linewidth',linwidth);
-%     plot(g1l(:,3),vt_dist,'r','Linewidth',linwidth);
-%     plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
-%     plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
-%     plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
-%     xlabel('Streamwise Distance [mm]')
-%     ylabel('Vertical Distance [mm]')
-%     title(['Fitting Bounds for Run',num2str(single_run)])
-%     grid on;
-%     legend('Estimated Gate Location','Gate Bounds')
+    figure;
+    image(sw_dist,vt_dist,imageData_mean);
+    set(gca,'YDir','normal');
+    colorbar;
+    colormap(jet(round(max(imageData_mean(:)))));
+    hold on;
+    plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
+    plot(g1l(:,1),vt_dist,'r','Linewidth',linwidth);
+    plot(g1l(:,3),vt_dist,'r','Linewidth',linwidth);
+    plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
+    plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
+    plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
+    xlabel('Streamwise Distance [mm]')
+    ylabel('Vertical Distance [mm]')
+    title(['Fitting Bounds for Run',num2str(single_run)])
+    grid on;
+    legend('Estimated Gate Location','Gate Bounds')
 
 
 %% Fitting the flare and providing a subtraction data set for near wall velocimetry

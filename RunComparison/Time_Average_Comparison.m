@@ -5,12 +5,16 @@ clear all;close all;clc;
 %from the fit to the time-averaged images. 
 
 %% Overarching Variables
-folder_path = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\";
-file_partial_name = "Time_Average_Fit_Run";
-Run_Conditions_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';   %stuff like gates and delays
-Resolution_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';                    %resolution
+folder_path                 = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\";
+file_partial_name           = "Time_Average_Fit_Run";
+Run_Conditions_filepath     = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';   %stuff like gates and delays
+Resolution_filepath         = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';                    %resolution
+ACE_On_Condition_filepath   = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat';                    %resolution
+
     load(Run_Conditions_filepath);
     load(Resolution_filepath);
+    load(ACE_On_Condition_filepath);
+
 runs_list = 1:14;
 lens_standoff_dist = 300; %mm
 height_focus = 3; %focusing around 3mm from the surface
@@ -18,6 +22,10 @@ decay_folderpath = "C:\Users\clark\Documents\GitHub\BL_FLEET_2.0\RawDataProcessi
 decay_filepaths = [ "ProcessedData_Synth_Run1_Images1500.mat";...
                     "ProcessedData_Synth_Run2_Images300.mat";...
                     "ProcessedData_Synth_Run3_Images300.mat"];
+FLEET_July_2022_filepath = "C:\Users\clark\Documents\Grad_Research\Data\FLEET_July2022\Data_Compiled.xlsx";
+dist_LE_Trips = 54.065; %mm, distance from the leading edge to the center of the tripping element
+cfd_filepath = "CFDDataForPlot.xlsx";
+
 
 colorlist = ['r','b','g','m'];
 PB_repeat   = [5484,5485,5486];
@@ -83,7 +91,7 @@ PB_downstm  = [5487,5488,5489]; %C, R, C-downstream
     c_taus          = cell(length(decay_filepaths),1);
     c_tau_errors    = cell(length(decay_filepaths),1);
 
-%% Loading in Data
+%% Loading in Data from the Sept 2022 Campaign
 for i= 1:length(runs_list)
     load(fullfile(folder_path,ordered_filepaths(i)))
     c_centroids{i} = centroids;
@@ -101,6 +109,14 @@ for i= 1:length(runs_list)
     c_wall_location_unc{i} = zero_height_ref_unc; %pixels
     c_decay{i} = tau_fit;
 end
+
+%% Loading in Data from the (already processed) July 2022 Campaign
+[Lam_FLEET,PB,SRA] = Load_July2022_Data(dist_LE_Trips,FLEET_July_2022_filepath);
+
+%% Loading in Data from CFD that more closely matches the July 2022 Campaign
+[Lam_CFD,DNS,RANS] = LoadCFD_Data_July2022(cfd_filepath,Run_Mean_Velo);
+CFD_downstream_loc = 193; %mm
+CFD_Reynolds = 5.22;  %Reynolds in Million/meter
 
 %% Calculating Velocity
 for i = 1:length(runs_list)
@@ -861,8 +877,88 @@ unc_linewidth = 1;
         xlim([0,900]);
         ylim([0,maxheight+1])
 
+%% CFD Comparison
+    %Pizza Box with  CFD, previous FLEET, and current FLEET all in one plot
+    %current data
+        labels_plot = strings(6,1);
+        maxheight = 0;
+        figure(12);
+        for j = 1:length(PB_BL_sp)
+            i = runs_list(uniqueruns==PB_BL_sp(j));
+            plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
+            hold on;
+            labels_plot(j) = strcat(num2str(downstream_loc(i))," mm Downstream, FLEET, Walls On");
+            maxheight = max([maxheight,max(c_heights_plot{i})]);
+        end
+%         for j = 1:length(PB_BL_sp)
+%             i = runs_list(uniqueruns==PB_BL_sp(j));
+%             color_plot = [':',colorlist(j)];
+%             plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%             plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%         end
+
+    %previous data
+        plot(PB.Mean_Velo,PB.Heights,'m','Linewidth',2);
+        labels_plot(4) = "193 mm Downstream, FLEET, Walls Off";
+%         plot(PB.Mean_Velo-PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+%         plot(PB.Mean_Velo+PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+
+    %CFD
+        plot(RANS.Velo,RANS.height,'k','Linewidth',2);
+        plot(DNS.Velo,DNS.height,'--k','Linewidth',2);
+        labels_plot(5) = "193 mm Downstream, RANS, Walls Off";
+        labels_plot(6) = "193 mm Downstream, DNS, Periodic Domain";
 
 
+        grid on;    
+        title('PB Boundary Layer Evolution');
+        xlabel('Velocity [m/s]');
+        ylabel('Height above the surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,1000]);
+        ylim([0,maxheight+1]);
+
+
+%Synthetic Roughness with  CFD, previous FLEET, and current FLEET all in one plot
+    %current data
+        labels_plot = strings(6,1);
+        maxheight = 0;
+        figure(13);
+        for j = 1:length(SRA_BL_sp)
+            i = runs_list(uniqueruns==SRA_BL_sp(j));
+            plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
+            hold on;
+            labels_plot(j) = strcat(num2str(downstream_loc(i))," mm Downstream, FLEET, Walls On");
+            maxheight = max([maxheight,max(c_heights_plot{i})]);
+        end
+%         for j = 1:length(SRA_BL_sp)
+%             i = runs_list(uniqueruns==PB_BL_sp(j));
+%             color_plot = [':',colorlist(j)];
+%             plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%             plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%         end
+
+    %previous data
+        plot(SRA.Mean_Velo,SRA.Heights,'m','Linewidth',2);
+        labels_plot(4) = "193 mm Downstream, FLEET, Walls Off";
+%         plot(PB.Mean_Velo-PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+%         plot(PB.Mean_Velo+PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+
+    %CFD
+        plot(RANS.Velo,RANS.height,'k','Linewidth',2);
+        labels_plot(5) = "193 mm Downstream, RANS, Walls Off";
+
+        grid on;    
+        title('SRA Boundary Layer Evolution');
+        xlabel('Velocity [m/s]');
+        ylabel('Height above the surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,1000]);
+        ylim([0,maxheight+1]);
 
 
 

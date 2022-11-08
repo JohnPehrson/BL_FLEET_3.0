@@ -15,50 +15,8 @@ g1_location_col = maxind;
 
 %% Location the emissions in dy (finding the location of the bright spot near the surface) for the real data
 
-if run ~= 12
-    %max
-        x = 1:drow;
-        sum_half_width = 12;
-        rowaverage = mean(imageData_mean(:,round(g1_location_col-sum_half_width):round(g1_location_col+sum_half_width)),2);
-        TF_row = islocalmax(rowaverage,'MinProminence',10);
-        possible_wall_locations = x(TF_row);
-        [~,closest_wall_loc_ind] = min(abs(top_offset-possible_wall_locations));
-        wallfit_location_col = possible_wall_locations(closest_wall_loc_ind);
-        amp = rowaverage(wallfit_location_col);
 
-        figure;
-        plot(x,rowaverage);
-        hold on;
-        scatter(x(TF_row),rowaverage(TF_row))
-
-    %gaussian fit
-        x0 = [amp,wallfit_location_col,2];
-        LB = [0.5.*amp,wallfit_location_col-5,1];
-        UB = [2.*amp,wallfit_location_col+5,3];
-     
-            options = optimset(@lsqcurvefit);
-            options.Display = 'off';
-            options.TolFun = 1e-5;
-            options.MaxFunEvals = 1e3;
-            options.MaxIter = 200;
-            options.FinDiffType = 'central';
-            
-            fit_gauss_g1 = @(p) (p(1)*exp(-(x-p(2)).^2./(2*p(3)^2)));
-            err_fit_gauss_g1 = @(v) fit_gauss_g1(v)-rowaverage';
-    
-            [fitvariables,~,residual,~,~,~,jacobian] = lsqnonlin(err_fit_gauss_g1,x0,LB,UB,options);
-            ci_g1 = nlparci(fitvariables,residual,'jacobian',jacobian);   %  95% confidence intervals for the fit coefficients
-            wallfit_location_col = fitvariables(2);
-            zero_height_ref_unc = [(ci_g1(2,2)-ci_g1(2,1))/2]; 
-
-        figure;
-        image(imageData_mean)
-        colorbar;
-        colormap(turbo(max(imageData_mean(:))));
-        axis equal;
-        set(gca, 'YDir','reverse')
-
-else %run 12 only
+if run==12 %run 12 only
     %fit with polynomial, find inflection point
         wallfit_location_col = 353;
         zero_height_ref_unc = [2]; 
@@ -73,6 +31,57 @@ else %run 12 only
 %         subplot(2,1,2);
 %         plot(xdif,diff_rowavg);
 
+else 
+    %max
+    x = 1:drow;
+    sum_half_width = 12;
+    rowaverage = mean(imageData_mean(:,round(g1_location_col-sum_half_width):round(g1_location_col+sum_half_width)),2);
+    TF_row = islocalmax(rowaverage,'MinProminence',10);
+    possible_wall_locations = x(TF_row);
+    [~,closest_wall_loc_ind] = min(abs(top_offset-possible_wall_locations));
+    wallfit_location_col = possible_wall_locations(closest_wall_loc_ind);
+    amp = rowaverage(wallfit_location_col);
+
+    figure;
+    plot(x,rowaverage);
+    hold on;
+    scatter(x(TF_row),rowaverage(TF_row))
+
+%gaussian fit
+    x0 = [amp,wallfit_location_col,2];
+    LB = [0.5.*amp,wallfit_location_col-5,1];
+    UB = [2.*amp,wallfit_location_col+5,3];
+ 
+        options = optimset(@lsqcurvefit);
+        options.Display = 'off';
+        options.TolFun = 1e-5;
+        options.MaxFunEvals = 1e3;
+        options.MaxIter = 200;
+        options.FinDiffType = 'central';
+        
+        fit_gauss_g1 = @(p) (p(1)*exp(-(x-p(2)).^2./(2*p(3)^2)));
+        err_fit_gauss_g1 = @(v) fit_gauss_g1(v)-rowaverage';
+
+        [fitvariables,~,residual,~,~,~,jacobian] = lsqnonlin(err_fit_gauss_g1,x0,LB,UB,options);
+        ci_g1 = nlparci(fitvariables,residual,'jacobian',jacobian);   %  95% confidence intervals for the fit coefficients
+        wallfit_location_col = fitvariables(2);
+        zero_height_ref_unc = [(ci_g1(2,2)-ci_g1(2,1))/2]; 
+
+    figure;
+    image(imageData_mean)
+    colorbar;
+    colormap(turbo(max(imageData_mean(:))));
+    axis equal;
+    set(gca, 'YDir','reverse')
+
+end
+
+if run==2
+    wallfit_location_col = wallfit_location_col+6;
+    zero_height_ref_unc = zero_height_ref_unc.*2;
+elseif run==3
+    wallfit_location_col = wallfit_location_col+2;
+    zero_height_ref_unc = zero_height_ref_unc.*2;
 end
 
 
