@@ -42,10 +42,10 @@ else
     wallfit_location_col = possible_wall_locations(closest_wall_loc_ind);
     amp = rowaverage(wallfit_location_col);
 
-    figure;
-    plot(x,rowaverage);
-    hold on;
-    scatter(x(TF_row),rowaverage(TF_row))
+%     figure;
+%     plot(x,rowaverage);
+%     hold on;
+%     scatter(x(TF_row),rowaverage(TF_row))
 
 %gaussian fit
     x0 = [amp,wallfit_location_col,2];
@@ -66,13 +66,13 @@ else
         ci_g1 = nlparci(fitvariables,residual,'jacobian',jacobian);   %  95% confidence intervals for the fit coefficients
         wallfit_location_col = fitvariables(2);
         zero_height_ref_unc = [(ci_g1(2,2)-ci_g1(2,1))/2]; 
-
-    figure;
-    image(imageData_mean)
-    colorbar;
-    colormap(turbo(max(imageData_mean(:))));
-    axis equal;
-    set(gca, 'YDir','reverse')
+% 
+%     figure;
+%     image(imageData_mean)
+%     colorbar;
+%     colormap(turbo(max(imageData_mean(:))));
+%     axis equal;
+%     set(gca, 'YDir','reverse')
 
 end
 

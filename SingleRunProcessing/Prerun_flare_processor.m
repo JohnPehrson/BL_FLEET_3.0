@@ -1,6 +1,6 @@
-function [flare_mask_reg_scale,imageData_ROI_flaresubtracted] = Prerun_flare_processor(prerunData_mean,...
+function [flare_mask_reg_scale,imageData_ROI_flaresubtracted,flare_height_mm] = Prerun_flare_processor(prerunData_mean,...
     fitting_limits,emissionlocatingdata,gate1_location_bounds,imageData_mean,flare_scale,...
-    create_prerun_flare_dataset,single_run)
+    create_prerun_flare_dataset,single_run,resolution)
 %This function takes the time-averaged data prior to the run alongside some
 %fitting bounds and uses it to isolate the reflected light coming out of
 %the beam port. 
@@ -154,10 +154,10 @@ if create_prerun_flare_dataset
 
         %% Saving
         if single_run==5495
-            save(savename,'prerun_mask','single_run');
+            save(savename,'prerun_mask','single_run','span_max_loc');
         end
 else %load in data
-    load(savename,'prerun_mask');
+    load(savename,'prerun_mask','span_max_loc');
 end
 
 %% Locate the Ellipse template over the real image, looking to extract the flare near the wall
@@ -174,24 +174,24 @@ h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'Semi
 
 mask = createMask(h);
 mean_mask = imageData_mean.*mask;
-
-%% Comparing the prerun flare to the actual run flare
-figure;
-subplot(1,2,1);
-image(prerun_mask)
-colorbar;
-colormap(turbo(max(prerun_mask(:))));
-axis equal;
-set(gca, 'YDir','reverse')
-title('Image Prerun Mask')
-
-subplot(1,2,2);
-image(mean_mask)
-colorbar;
-colormap(turbo(max(prerun_mask(:))));
-axis equal;
-set(gca, 'YDir','reverse')
-title('Image Mean Mask')
+% 
+% %% Comparing the prerun flare to the actual run flare
+% figure;
+% subplot(1,2,1);
+% image(prerun_mask)
+% colorbar;
+% colormap(turbo(max(prerun_mask(:))));
+% axis equal;
+% set(gca, 'YDir','reverse')
+% title('Image Prerun Mask')
+% 
+% subplot(1,2,2);
+% image(mean_mask)
+% colorbar;
+% colormap(turbo(max(prerun_mask(:))));
+% axis equal;
+% set(gca, 'YDir','reverse')
+% title('Image Mean Mask')
 
 %% Put the prerun flare fit into a matrix the size of the mean
 flare_mat = zeros(size(mean_mask));
@@ -227,6 +227,14 @@ flare_mat(ylocs,xlocs) = prerun_mask;
 
 %% Scaling
 flare_mask_reg_scale = flare_mask_reg.*flare_scale(2);
+
+%% Finding the pixel-height of the flare above the surface
+center_flare = flare_mask_reg_scale(:,span_max_loc);
+center_flare_binary = center_flare>50;
+rows_count = 1:length(center_flare_binary);
+rows_flare = rows_count(center_flare_binary);
+flare_height_mm = ((rows_flare(end)-rows_flare(1))/2).*(resolution./1000);
+
 
 %% Subtract template from the time-averaged mean
 imageData_ROI_flaresubtracted = imageData_mean-flare_mask_reg_scale;

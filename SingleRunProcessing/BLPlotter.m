@@ -1,6 +1,5 @@
 function BLPlotter(velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
-    velocity_rms_s,mean_SNR,mean_R2,mean_signal,pixel_um_resolution,emissionlocatingdata,...
-    run,invar_image_compare,tau_fit,row_mm,row_mm_uncertainty,sufficient_counter)
+    velocity_rms_s,mean_SNR,run,invar_image_compare,tau_fit,row_mm,sufficient_counter)
 %This function plots the mean and root mean squared velocity using pixel
 %and real scales. Optional saving of images.
 
@@ -36,20 +35,6 @@ max_height = row_mm(min(sufficient_counter));
     set(gca,'FontSize', 15);
     set(gca,'fontname','times')  % Set it to times
    
-    %mean SNR and R2 
-    figure;
-    plot(mean_SNR,row_mm,'b','Linewidth',2);
-    hold on;
-    plot(mean_R2,row_mm,'r','Linewidth',2);
-    grid on;    
-    ylim([0,max_height]);
-    title('Mean SNR and R2');
-    xlabel('[-]');
-    ylabel('Height above the surface [mm]');
-    legend('Mean SNR','Mean R2');
-    set(gca,'FontSize', 15);
-    set(gca,'fontname','times')  % Set it to times
-
     %decay constant
     binary_rowsplot = ~isnan(velocity_mean);
     figure;
@@ -62,12 +47,12 @@ max_height = row_mm(min(sufficient_counter));
     set(gca,'FontSize', 15);
     set(gca,'fontname','times')  % Set it to times
 
-    %mean signal
+    %SNR
     figure;
-    plot(mean_signal,row_mm,'b','Linewidth',2);
+    plot(mean_SNR,row_mm,'b','Linewidth',2);
     grid on;    
     ylim([0,max_height]);
-    title('Total Signal in Gate 2');
+    title('SNR in Gate 2');
     xlabel('Total Pixel Intensity');
     ylabel('Height above the surface [mm]');
     set(gca,'FontSize', 15);
@@ -84,6 +69,8 @@ max_height = row_mm(min(sufficient_counter));
     ylabel('URMS [m/s]');
     set(gca,'FontSize', 15);
     set(gca,'fontname','times')  % Set it to times
+    ylim([0,max(velocity_rms)+50])
+    xlim([0,max(mean_SNR)+20])
 
 
 end

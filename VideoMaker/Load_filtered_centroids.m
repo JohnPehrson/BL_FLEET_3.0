@@ -1,6 +1,5 @@
 function [filt_centroids] = Load_filtered_centroids(folderpath,run,filt_filename)
-    folder_combined = strcat(folderpath,num2str(run));
-    a=dir(strcat(folder_combined,"\*"));
+    a=dir(strcat(folderpath,"\*"));
     filenames = strings(length(a),1);
     for i = 1:length(a)
     filenames(i) = a(i).name;
@@ -12,11 +11,12 @@ function [filt_centroids] = Load_filtered_centroids(folderpath,run,filt_filename
     real_stringlength = length(convertStringsToChars(filt_filename));
     for i = 1:length(real_filenames)
         localstring = convertStringsToChars(real_filenames(i));
-        localstring = localstring((real_stringlength+1):end-4);
+        localstring = localstring((real_stringlength+9):(length(localstring)-4));
         real_imagenumbers(i) = str2double(localstring);
     end
+
     [~,ind] = max(real_imagenumbers);
-    real_filepath = strcat(folderpath,num2str(run),'\',real_filenames(ind));
+    real_filepath = fullfile(folderpath,real_filenames(ind));
     load(real_filepath); %has the output in here
 
 end

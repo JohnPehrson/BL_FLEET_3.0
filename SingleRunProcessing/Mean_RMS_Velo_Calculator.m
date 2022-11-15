@@ -1,6 +1,6 @@
 function [mean_velocity,rms_velocity,mean_velocity_r,mean_velocity_s,rms_velocity_r,rms_velocity_s,...
-    mean_SNR,mean_R2,mean_signal,sufficient_counter] = Mean_RMS_Velo_Calculator(inst_velo,inst_velo_r,inst_velo_s,...
-    R2,SNR,signal,numimages,filt_binary_master,emissionlocatingdata)
+    mean_SNR,sufficient_counter] = Mean_RMS_Velo_Calculator(inst_velo,inst_velo_r,inst_velo_s,...
+    SNR,numimages,filt_binary_master,emissionlocatingdata)
 %This function calculates the mean and rms velocity
 
 %% Initalizing Variables
@@ -11,8 +11,6 @@ mean_velocity_r = NaN(length(allrows),1);
 mean_velocity_s = NaN(length(allrows),1);
 rms_velocity_r = NaN(length(allrows),1);
 rms_velocity_s = NaN(length(allrows),1);
-mean_R2 = NaN(length(allrows),1);
-mean_signal = NaN(length(allrows),1);
 mean_SNR = NaN(length(allrows),1);
 
 %% Limiter to only gather data on rows with sufficient number of individual passed images
@@ -76,8 +74,6 @@ sufficient_counter = rows_ind(test2);
     %% R2 and signal and snr
     
     for i = sufficient_counter
-        mean_R2(i) = mean(R2(i,filt_binary_master(i,:)));
-        mean_signal(i) = mean(signal(i,filt_binary_master(i,:)));
         mean_SNR(i) = mean(SNR(i,filt_binary_master(i,:)));
     end
 

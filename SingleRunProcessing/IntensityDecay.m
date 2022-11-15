@@ -25,15 +25,15 @@ for i = 1:rows
     tau_fit(i) = -1*inv(coeffvals(2));
 end
 
-    %% Visualizing the fit
-    yplot = 1:rows;
-    figure;
-    plot(tau_fit(yplot),yplot);
-    hold on;
-    xlabel('Intensity Decay Constant');
-    ylabel('Pixels in the Image');
-    title('Decay Constant Fitting Real Data');
-    set(gca, 'YDir','reverse')
+%     %% Visualizing the fit
+%     yplot = 1:rows;
+%     figure;
+%     plot(tau_fit(yplot),yplot);
+%     hold on;
+%     xlabel('Intensity Decay Constant');
+%     ylabel('Pixels in the Image');
+%     title('Decay Constant Fitting Real Data');
+%     set(gca, 'YDir','reverse')
     
 
 end

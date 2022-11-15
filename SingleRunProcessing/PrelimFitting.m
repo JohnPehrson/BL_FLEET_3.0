@@ -1,9 +1,9 @@
-function [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,cutoff_height_pixels,...
+function [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,g1_fitline_above,...
     nearwall_bounds,background_totalfit,amplitudes,double_gauss_fitvariables,near_wall_extrap,...
-    centroids,snr,centroid_error,y_mm,gb1,gb2] = PrelimFitting(run,...
+    centroids,snr,centroid_error,y_mm,gb1,gb2,flare_height_mm] = PrelimFitting(run,...
     imageData_mean,prerunData_mean,ypix,xpix,resolution,g1_location_col,ROI,numprelim_images,emissionlocatingdata,...
     fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,lam_run_binary,single_run,freestream_est,...
-    cross_shock_run_binary,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset)
+    cross_shock_run_binary,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset,rerun_label)
 %this function performs preliminary fitting on the mean of the data that
 %can then be applied to individual images. The primary sub-functions are to
 %identify fitting bounds and observe background noise and fit it
@@ -102,31 +102,32 @@ g2_half_width = 13;
 imageData_mean_nobackground = imageData_mean-background_totalfit;
 prerunData_mean_nobackground = prerunData_mean-background_totalfit;
 [flare_g1_fit,nearwall_bounds,amplitudes,double_gauss_fitvariables,near_wall_extrap,...
-centroids,snr,centroid_error,y_mm,gb1,gb2] = ...
+centroids,snr,centroid_error,y_mm,gb1,gb2,flare_height_mm] = ...
 Time_Averaged_Gate_Fitter(imageData_mean_nobackground,...
 prerunData_mean_nobackground,emissionlocatingdata,g1_fitline_above,...
 ypix,xpix,gate1_location_bounds,gate2_location_bounds,fitting_limits,run,numprelim_images,synth_switch,...
-resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset);
+resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale,...
+create_prerun_flare_dataset,rerun_label);
 
 time_averaged_fit = background_totalfit+flare_g1_fit;
 mean_background_subt = imageData_mean-time_averaged_fit;
-    %plotting
-    figure;
-    image(mean_background_subt)
-    colorbar;
-    colormap(jet(round(max(mean_background_subt(:)))));
-    hold on;
-    plot(gate1_location_bounds(:,1),1:ypix,'r');
-    hold on
-    plot(gate1_location_bounds(:,2),1:ypix,'b');
-    hold on;
-    plot(gate1_location_bounds(:,3),1:ypix,'r');
-    hold on;
-    plot(gate2_location_bounds(:,1),1:ypix,'r');
-    hold on
-    plot(gate2_location_bounds(:,2),1:ypix,'b');
-    hold on;
-    plot(gate2_location_bounds(:,3),1:ypix,'r');
+%     %plotting
+%     figure;
+%     image(mean_background_subt)
+%     colorbar;
+%     colormap(jet(round(max(mean_background_subt(:)))));
+%     hold on;
+%     plot(gate1_location_bounds(:,1),1:ypix,'r');
+%     hold on
+%     plot(gate1_location_bounds(:,2),1:ypix,'b');
+%     hold on;
+%     plot(gate1_location_bounds(:,3),1:ypix,'r');
+%     hold on;
+%     plot(gate2_location_bounds(:,1),1:ypix,'r');
+%     hold on
+%     plot(gate2_location_bounds(:,2),1:ypix,'b');
+%     hold on;
+%     plot(gate2_location_bounds(:,3),1:ypix,'r');
 
 end
 

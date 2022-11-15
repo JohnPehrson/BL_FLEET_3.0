@@ -77,15 +77,15 @@ g_dist_tail(cent:max(nearwall_list)) = moved_g_dist(cent:max(nearwall_list));
 
 amp_extrap = g_dist_tail(nearwall_list);
 
-        %plotting the gaussian fit
-        figure;
-        scatter(all_rows,all_amps,'r','Linewidth',1);
-        grid on;
-        hold on;
-        plot(all_rows,amp_all,':c','Linewidth',2)
-        plot(all_rows,g_dist_tail,'k','Linewidth',2);
-        plot(nearwall_list,amp_extrap,'b','Linewidth',2)
-        legend('Fit Amplitudes','Gaussian Fit','Extrapolated Amplitudes');
+%         %plotting the gaussian fit
+%         figure;
+%         scatter(all_rows,all_amps,'r','Linewidth',1);
+%         grid on;
+%         hold on;
+%         plot(all_rows,amp_all,':c','Linewidth',2)
+%         plot(all_rows,g_dist_tail,'k','Linewidth',2);
+%         plot(nearwall_list,amp_extrap,'b','Linewidth',2)
+%         legend('Fit Amplitudes','Gaussian Fit','Extrapolated Amplitudes');
 
 
 %% Making the output variables
