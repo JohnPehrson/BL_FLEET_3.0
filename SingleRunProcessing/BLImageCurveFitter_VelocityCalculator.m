@@ -1,13 +1,15 @@
-function [centroids,velocity,random_velocity_error,systematic_velocity_error,R2,snr,signal] = BLImageCurveFitter_VelocityCalculator(imageData_ROI,cols,...
+function [centroids,velocity,random_velocity_error,systematic_velocity_error,snr]= BLImageCurveFitter_VelocityCalculator(imageData_ROI,cols,...
             rows,gate1_location_bounds,gate2_location_bounds,emissionlocatingdata,fitting_limits,...
-            cutoff_height_pixels,pixel_um_resolution,gates,delay,constant_background,run,cfd_turb_prof,synth_switch)
+            cutoff_height_pixels,pixel_um_resolution,gates,delay,constant_background,run,cfd_turb_prof,...
+            synth_switch,near_wall_g1_scale,noise)
 %This function will loop through rows and apply a gaussian curve fit to it.
 %The velocity is also calculated for each row. 
 
-[centroids,snr,centroid_error,R2,fitvariables,residual,nearwall_bounds,...
-    near_wall_extrap,signal] = Single_Image_Fitting(imageData_ROI,...
+[centroids,snr,centroid_error,~,~,~,...
+    ~,~] = Single_Image_Fitting(imageData_ROI,...
     cutoff_height_pixels,emissionlocatingdata,gate1_location_bounds,gate2_location_bounds,...
-    fitting_limits,delay,gates,run,pixel_um_resolution(1),rows,cfd_turb_prof,synth_switch);
+    fitting_limits,delay,gates,run,pixel_um_resolution(1),rows,cfd_turb_prof,synth_switch,...
+    near_wall_g1_scale,noise);
 
 %% Velocity Finding
 velocity = zeros(rows,1);
@@ -21,7 +23,7 @@ end
 wall_yloc = emissionlocatingdata(2);
 
 %velocity plot from the mean
-height_plot_pix = -1.*(1:rows)+wall_yloc+1;
+height_plot_pix = -1.*(1:rows)+wall_yloc;
 height_plot_mm = height_plot_pix.*pixel_um_resolution(1)./(10^3);
 
 %  %image viewing with bounds and the actual fit
@@ -47,7 +49,7 @@ height_plot_mm = height_plot_pix.*pixel_um_resolution(1)./(10^3);
 %     xlabel('Signal-to-Noise Ratio in Gate 2');
 %     ylabel('Height above the surface [mm]');
 
-% %% Plotting the location of centroids over the image
+%% Plotting the location of centroids over the image
 %     figure;
 %     subplot(1,3,1);
 %     pix2mm = pixel_um_resolution(1)./1000;
@@ -57,7 +59,7 @@ height_plot_mm = height_plot_pix.*pixel_um_resolution(1)./(10^3);
 %     image(x,y,imageData_ROI);
 %     axis equal;
 %     colorbar;
-%     colormap(bone(4096));
+%     colormap(bone(round(max(imageData_ROI(:)))));
 %     hold on;
 %     plot(centroids(:,1).*pix2mm-3.75+137.5,y,':r','Linewidth',3);
 %     hold on;
@@ -79,7 +81,7 @@ height_plot_mm = height_plot_pix.*pixel_um_resolution(1)./(10^3);
 %     legend('Initial Emissions Centroids','Displaced Emissions Centroids');
 %     ylim([min(y),max(y)])
 %     y1=ylim;        %gets current limits
-
+% 
 %     subplot(1,3,2);
 %     plot(velocity,y');
 %     xlabel('Velocity')
@@ -92,7 +94,7 @@ height_plot_mm = height_plot_pix.*pixel_um_resolution(1)./(10^3);
 % 
 %     subplot(1,3,3);
 %     plot(snr,y');
-%     xlabel('SNR')
+%     xlabel('Signal')
 %     ylabel('Height above the Surface [mm]')
 %     set(gca,'YDir','normal');
 %     set(gca,'FontSize', 20);
