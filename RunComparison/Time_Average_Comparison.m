@@ -5,11 +5,14 @@ clear all;close all;clc;
 %from the fit to the time-averaged images. 
 
 %% Overarching Variables
-folder_path                 = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\";
-file_partial_name           = "Time_Average_Fit_Run";
+folder_path                 = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\"; %"C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\";
+file_partial_name           = "Time_Average_Fit_RR1_Run";
 Run_Conditions_filepath     = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';   %stuff like gates and delays
 Resolution_filepath         = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';                    %resolution
 ACE_On_Condition_filepath   = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat';                    %resolution
+near_wall_folder_path       = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\RunComparison\Near_Wall_Uncertainty_Data\";
+near_wall_file_name         = "Time_Average_Fit_RR";
+near_wall_folder_path_5479  = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\RunComparison\Near_Wall_Uncertainty_Data_5479\";
 
     load(Run_Conditions_filepath);
     load(Resolution_filepath);
@@ -17,6 +20,7 @@ ACE_On_Condition_filepath   = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\Sing
 
 runs_list = 1:14;
 lens_standoff_dist = 300; %mm
+N_ims = 1; %for time-averaged
 height_focus = 3; %focusing around 3mm from the surface
 decay_folderpath = "C:\Users\clark\Documents\GitHub\BL_FLEET_2.0\RawDataProcessing\ProcessedData\";
 decay_filepaths = [ "ProcessedData_Synth_Run1_Images1500.mat";...
@@ -26,7 +30,6 @@ FLEET_July_2022_filepath = "C:\Users\clark\Documents\Grad_Research\Data\FLEET_Ju
 dist_LE_Trips = 54.065; %mm, distance from the leading edge to the center of the tripping element
 cfd_filepath = "CFDDataForPlot.xlsx";
 
-
 colorlist = ['r','b','g','m'];
 PB_repeat   = [5484,5485,5486];
 SRA_repeat  = [5479,5483,5495];
@@ -35,6 +38,7 @@ PB_BL_sp    = [5491,5490,5486];
 SRA_BL      = [5492,5493,5494,SRA_repeat];
 SRA_BL_sp   = [5493,5494,5495];
 PB_downstm  = [5487,5488,5489]; %C, R, C-downstream
+all_runs    = [5479,5483:5495];
 
 %% Getting more complex input variables
     %load in resolution and gate/delay pairs
@@ -73,23 +77,44 @@ PB_downstm  = [5487,5488,5489]; %C, R, C-downstream
     %calculated/derived variables
     c_velocities                = cell(length(runs_list),1);
     c_heights_adjusted          = cell(length(runs_list),1);
-    c_heights_unc               = cell(length(runs_list),1);
-    c_random_velocity_error     = cell(length(runs_list),1);    %from fitting
-    c_systematic_velocity_error = cell(length(runs_list),1);    %from fitting
-    c_velo_error_combined       = cell(length(runs_list),1);
     c_heights_plot              = cell(length(runs_list),1);
     c_velocities_plot           = cell(length(runs_list),1);
-    c_velo_error_combined_plot  = cell(length(runs_list),1);  
     c_velo_bounds               = cell(length(runs_list),1);  
-    c_velo_error_wall_unc       = cell(length(runs_list),1);
-    c_velo_error_magnification  = cell(length(runs_list),1);
-    c_velo_error_span_point     = cell(length(runs_list),1);
-    c_velo_error_decay          = cell(length(runs_list),1);
     c_SNR_binary_filt           = cell(length(runs_list),1);
+
+    %Uncertainties
+    unc_velo_centroid_fit       = cell(length(runs_list),1);    %from fitting
+    unc_velo_resolution         = cell(length(runs_list),1);    %from fitting
+    unc_height_resolution       = cell(length(runs_list),1);   
+    unc_height_wall_location    = cell(length(runs_list),1); 
+    unc_velo_emission_decay     = cell(length(runs_list),1); 
+    unc_velo_magnification      = cell(length(runs_list),1); 
+    unc_height_inclination      =cell(length(runs_list),1); 
+    unc_velo_span_point         = cell(length(runs_list),1);
+    unc_velo_nearwall           = cell(length(runs_list),1);
+    unc_velo_RANDOM             = cell(length(runs_list),1);
+    unc_velo_SYSTEMATIC         = cell(length(runs_list),1);
+    unc_velo_COMBINED           = cell(length(runs_list),1);
+    unc_height_SYSTEMATIC       = cell(length(runs_list),1);
+    unc_velo_COMBINED_plot      = cell(length(runs_list),1); 
+    unc_velo_heights            = cell(length(runs_list),1); 
+
+    %Inner Variables
+    inner_velo_fleet    = cell(length(runs_list),1); 
+    inner_y_fleet       = cell(length(runs_list),1);
+    inner_velo_cfd      = cell(length(runs_list),1);
+    inner_y_cfd         = cell(length(runs_list),1); 
 
     %decay constant data sets
     c_taus          = cell(length(decay_filepaths),1);
     c_tau_errors    = cell(length(decay_filepaths),1);
+
+    %save out data into an excel file
+        %headers
+        table_headers = {'Mean Velocity [m/s]','Uncertainty in Mean Velocity [m/s]','Height above the Test Article [mm]',...
+        	            'Uncertainty in Height above the Test Article [mm]','Location Downstream the Leading Edge [mm]',...
+                    	'Uncertainty in Downstream Location  [mm]','Spanwise Location [mm]','Uncertainty in Spanwise Location [mm]'};
+        excel_filepath = "Mean_Velo_FLEET_Sept2022.xlsx";
 
 %% Loading in Data from the Sept 2022 Campaign
 for i= 1:length(runs_list)
@@ -102,10 +127,6 @@ for i= 1:length(runs_list)
     c_gates{i} = Gates(i,:);
     c_delays{i} = Delays(i,:);
     c_resolutions{i} = pixel_um_resolution(i,:);
-    c_downstream_locs{i} = downstream_loc(i,:);
-    c_downstream_locs_unc{i}= downstream_loc_unc(i,:);
-    c_spanwise_locs{i} = spanwise_loc(i,:);
-    c_spanwise_locs_unc{i} = spanwise_loc_unc(i,:);
     c_wall_location_unc{i} = zero_height_ref_unc; %pixels
     c_decay{i} = tau_fit;
 end
@@ -118,6 +139,10 @@ end
 CFD_downstream_loc = 193; %mm
 CFD_Reynolds = 5.22;  %Reynolds in Million/meter
 
+%% Loading in Data for near-wall uncertainty 
+[near_wall_fitobject] = NearWall_Uncertainty_Calculator(near_wall_folder_path,near_wall_file_name,Gates,Delays,pixel_um_resolution);
+[near_wall_fitobject_5479] = NearWall_Uncertainty_Calculator(near_wall_folder_path_5479,near_wall_file_name,Gates,Delays,pixel_um_resolution);
+
 %% Calculating Velocity
 for i = 1:length(runs_list)
     run_cent        = c_centroids{i};
@@ -127,13 +152,13 @@ for i = 1:length(runs_list)
     run_delays      = c_delays{i};
 
 
-    [velocity,random_velocity_error,systematic_velocity_error] = VelocityFinder(run_cent,...
+    [velocity,centroid_fit_error,resolution_mean_velo_error] = VelocityFinder(run_cent,...
         run_cent_error,run_resolution,run_gates,run_delays);
 
 c_velocities{i}                 = velocity;
-c_random_velocity_error{i}      = random_velocity_error;
-c_systematic_velocity_error{i}  = systematic_velocity_error;
-c_velo_error_combined{i} = sqrt(random_velocity_error.^2+systematic_velocity_error.^2);
+unc_velo_centroid_fit{i}        = centroid_fit_error;
+unc_velo_resolution{i}          = resolution_mean_velo_error;
+% c_velo_error_combined{i}        = sqrt(centroid_fit_error.^2+resolution_mean_velo_error.^2);
 end
 
 %% Calculating min and max possible velocities if limited by fitting bounds
@@ -163,11 +188,10 @@ for i = 1:length(runs_list)
 c_velo_bounds{i} = [min_velo,max_velo];
 end
 
-
 %% Finding the SNR Filtering for the max height
 for i = 1:length(runs_list)
     %calculations to pick a maximum snr height
-        snr_thresh = 3.15;
+        snr_thresh = 30;
         no_filt_height = 7.5; %mm
         snr_binary = or((c_heights{i}<no_filt_height),(c_SNRs{i}'>snr_thresh)); %get data above some minimum height where rows have good snr
         above_surf_binary = (c_heights{i}>=0);
@@ -195,35 +219,34 @@ for i = 1:length(runs_list)
                 f_height        = f_height(both_binary);
         
 
-
-%             %plotting
-%             figure(1);
-%             subplot(1,3,1);
-%             plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
-%             xlim([0,1000]);
-%             ylim([0,max(c_heights{i})])
-%             xlabel('Mean Velocity')
-%             ylabel('Height above surface [mm]')
-%             grid on;
-%             set(gca,'FontSize', 15);
-%             set(gca,'fontname','times')  % Set it to times
-%         
-%             subplot(1,3,2);
-%             plot(c_SNRs{i},c_heights{i},'r','Linewidth',2);
-%             xlabel('SNR')
-%             grid on;
-%             xlim([0,max(c_SNRs{i})]);
-%             ylim([0,max(c_heights{i})])
-%             hold off;
-%             title(['SNR Filtering for Run ',num2str(uniqueruns(i))])
-%             set(gca,'FontSize', 15);
-%             set(gca,'fontname','times')  % Set it to times
-%             xline(snr_thresh,'k','Linewidth',3);
-%         
-%             subplot(1,3,3);
-%             plot(f_velo,f_height,'r','Linewidth',2);
-%             ylim([0,max(c_heights{i})])
-%             ylim([0,max(c_heights{i})])
+            %plotting
+            figure(1);
+            subplot(1,3,1);
+            plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
+            xlim([0,1000]);
+            ylim([0,max(c_heights{i})])
+            xlabel('Mean Velocity')
+            ylabel('Height above surface [mm]')
+            grid on;
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+        
+            subplot(1,3,2);
+            plot(c_SNRs{i},c_heights{i},'r','Linewidth',2);
+            xlabel('SNR')
+            grid on;
+            xlim([0,max(c_SNRs{i})]);
+            ylim([0,max(c_heights{i})])
+            hold off;
+            title(['SNR Filtering for Run ',num2str(uniqueruns(i))])
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+            xline(snr_thresh,'k','Linewidth',3);
+        
+            subplot(1,3,3);
+            plot(f_velo,f_height,'r','Linewidth',2);
+            ylim([0,max(c_heights{i})])
+            ylim([0,max(c_heights{i})])
 
 end
 
@@ -299,12 +322,12 @@ end
                     num2str(min_max_decay_corr(2).*100),'%'])
 
              c_velocities{i} = (1+nondim_fit').*c_velocities{i};
-             c_velo_error_decay{i} = (nondim_unc).*c_velocities{i};
-             c_velo_error_combined{i} = sqrt(c_velo_error_combined{i}.^2+c_velo_error_decay{i}.^2);
+             unc_velo_emission_decay{i} = (nondim_unc).*c_velocities{i};
+%              c_velo_error_combined{i} = sqrt(c_velo_error_combined{i}.^2+c_velo_error_decay{i}.^2);
     end
 
 
-%% Uncertainty Propogation (wall location, magnification, inclination angle, span angle, etc.)
+%% Uncertainty Propogation (wall location, magnification, inclination angle, span angle, near-wall fitting effects)
 for i= 1:length(runs_list)
 
     %     SpanwiseCameraAngle
@@ -312,46 +335,58 @@ for i= 1:length(runs_list)
 
     %wall_loc_unc-------------------------------------------------------------
             heights = c_heights{i}';
-            velo = c_velocities{i};
             wall_loc_unc = sqrt(c_wall_location_unc{i}.^2+1.^2);
             res = c_resolutions{i};
-            [uncertainty_mean_velo_wall_loc,wall_loc_unc_mm] = Wall_Uncertainty_Propogator(res,...
-                wall_loc_unc,velo,heights);
-            c_heights_unc{i} = wall_loc_unc_mm.*ones(length(uncertainty_mean_velo_wall_loc),1);
-            c_velo_error_wall_unc{i} = uncertainty_mean_velo_wall_loc;
-            c_velo_error_combined{i} = sqrt(c_velo_error_combined{i}.^2+c_velo_error_wall_unc{i}.^2);
+            [resolution_height_uncertainty,wall_location_height_uncertainty] ...
+                = Wall_Resolution_height_Uncertainty_Propogator(res,wall_loc_unc,heights);
 
-    %magnification------------------------------------------------------------
+            unc_height_resolution{i} = resolution_height_uncertainty;
+            unc_height_wall_location{i} = wall_location_height_uncertainty.*ones(size(resolution_height_uncertainty));
+
+    %magnification and beam angle------------------------------------------------------------
         L_hvec = heights-3; 
         inc_angle_max = inclination_angle_unc(i)+inclination_angle(i);
         angle_beam = 2; %likely beam angle, degrees
         d_vec = L_hvec.*sind(inc_angle_max+angle_beam);
         Mo_Md = 1-d_vec./lens_standoff_dist;
         mag_unc = abs(1-Mo_Md);
-        c_velo_error_magnification{i} = c_velocities{i}.*mag_unc;
-        c_velo_error_combined{i} = sqrt(c_velo_error_combined{i}.^2+c_velo_error_magnification{i}.^2);
+        unc_velo_magnification{i} = c_velocities{i}.*mag_unc;
         
     %Inclination angle
-        c_heights_adjusted{i} = c_heights{i}'./cosd(inclination_angle(i));
-        c_heights_unc{i} = sqrt(c_heights_unc{i}.^2+ abs(c_heights_adjusted{i}.*(sind(inclination_angle(i))./cosd(inclination_angle(i)))).*deg2rad(inclination_angle_unc(i)).^2);
-        c_heights{i} = c_heights_adjusted{i}';
+        c_heights{i} = c_heights{i}'./cosd(inclination_angle(i));
+        unc_height_inclination{i} = c_heights{i}.*(sind(inclination_angle(i))./(cosd(inclination_angle(i).^2))).*deg2rad(inclination_angle_unc(i));
 
     %Span angle
-        %span angle ideal is at 0 degrees, so mean and rms won't change, just
         %change systematic errors
-        span_angle =  SpanwiseCameraAngle(i,1); %degree
-        span_angle_uncertainty = SpanwiseCameraAngle(i,2); %degree
+            span_angle =  SpanwiseCameraAngle(i,1); %degree
+            span_angle_uncertainty = 2*SpanwiseCameraAngle(i,2); %degree
         %correct mean velocity
-        c_velocities{i} = c_velocities{i}./cosd(span_angle);
+            c_velocities{i} = c_velocities{i}./cosd(span_angle);
         %account for uncertainty propogation
-        c_velo_error_span_point{i} = sqrt((((c_velocities{i}/((cosd(span_angle).^2))).^2).*(deg2rad(span_angle_uncertainty).^2)));
-        c_velo_error_combined{i} = sqrt(c_velo_error_combined{i}.^2+c_velo_error_span_point{i}.^2);
+            unc_velo_span_point{i} = c_velocities{i}.*(sind(span_angle)./(cosd(span_angle.^2))).*deg2rad(span_angle_uncertainty);
+
+    %Near-wall effects
+    if i==1 %first run, different config
+        unc_velo_nearwall{i} = feval(near_wall_fitobject_5479,c_heights{i});
+    else
+        unc_velo_nearwall{i} = feval(near_wall_fitobject,c_heights{i});
+    end
+end
+
+%% Combine random and systematic uncertainties
+for i = 1:length(runs_list)
+
+    unc_velo_RANDOM{i} = (1/sqrt(N_ims)).*sqrt(unc_velo_centroid_fit{i}.^2);
+    unc_velo_SYSTEMATIC{i} = sqrt(unc_velo_resolution{i}.^2+unc_velo_emission_decay{i}.^2+unc_velo_magnification{i}.^2 ...
+                                +unc_velo_span_point{i}.^2+unc_velo_nearwall{i}.^2);
+    unc_velo_COMBINED{i} = sqrt(unc_velo_RANDOM{i}.^2+unc_velo_SYSTEMATIC{i}.^2);
+    unc_height_SYSTEMATIC{i} = sqrt(unc_height_resolution{i}.^2+unc_height_wall_location{i}.^2+unc_height_inclination{i}.^2);
 end
 
 %% Smoothing the mean velocity and uncertainty for plotting
 for i = 1:length(runs_list)
     r_velo      = c_velocities{i};
-    r_velo_err  = c_velo_error_combined{i};
+    r_velo_err  = unc_velo_COMBINED{i};
     r_height    = c_heights{i};
 
     r_velo(r_height<0) = 0;
@@ -397,103 +432,175 @@ for i = 1:length(runs_list)
     r_velo(replace_binary) = smooth_velo(replace_binary);
     r_velo_err(replace_binary) = smooth_velo_err(replace_binary);
     c_velocities{i}             = r_velo;
-    c_velo_error_combined{i}    = r_velo_err;
+    unc_velo_COMBINED{i}    = r_velo_err;
 
 end
 
-%% Using the SNR filter to simplify the plotting, only plot where the SNR filter suggests
+%% Propogating uncertainties in height into uncertainty in the mean velocity (mostly for plotting purposes)
+unc_velo_COMBINED_table = unc_velo_COMBINED;
+for i = 1:length(runs_list)
+velo_unc    =  unc_velo_COMBINED{i};
+height_unc  =  unc_height_SYSTEMATIC{i}; 
+velo        =  c_velocities{i};
+heights      =  c_heights{i};
+
+        %move height up and down
+            heights_dn = heights-height_unc;
+            heights_up = heights+height_unc;
+        %interpolate results if moved up or down
+            velo_dn = interp1(heights_dn,velo,heights,'spline');
+            velo_up = interp1(heights_up,velo,heights,'spline');
+        %provide result
+            uncertainty_mean_velo_wall_loc = (abs(velo_dn-velo)+abs(velo_up-velo))/2;
+            unc_velo_heights{i} = uncertainty_mean_velo_wall_loc;
+            unc_velo_COMBINED{i} = sqrt(unc_velo_COMBINED{i}.^2+unc_velo_heights{i}.^2);
+    
+            
+%             %plot
+%                 figure;
+%                 subplot(1,2,1);
+%                 plot(velo,heights,'b','Linewidth',2);
+%                 hold on;
+%                 plot(velo,heights_dn);
+%                 plot(velo,heights_up);
+%                 plot(velo_dn,heights,':r','Linewidth',1);
+%                 plot(velo_up,heights,':r','Linewidth',1);
+%                     plot(velo-uncertainty_mean_velo_wall_loc,heights,':b','Linewidth',2);
+%                     plot(velo+uncertainty_mean_velo_wall_loc,heights,':b','Linewidth',2);
+%                 grid on;
+%                 xlabel('Mean Velocity [m/s]')
+%                 ylabel('Height above the surface [mm]')
+%                 title('Uncertainty due to wall location Finding')
+% 
+%                 subplot(1,2,2);
+%                 plot(uncertainty_mean_velo_wall_loc,heights,'b','Linewidth',2);
+%                 xlim([0,50]);
+%                 xlabel('Velocity Uncertainty [m/s]')
+%                 title('Uncertainty due to wall location Finding')
+
+end
+
+%% Using the SNR filter to simplify the plotting and saving, only plot where the SNR filter suggests
 for i = 1:length(runs_list)
 
     %get filter
     snr_filt = c_SNR_binary_filt{i};
 
     %filter data using SNR>threshold and a minimum height to keep
-        f_velo          = c_velocities{i};
-        f_velo_error    = c_velo_error_combined{i};
-        f_height        = c_heights{i};
-        f_velo          = f_velo(snr_filt);
-        f_velo_error    = f_velo_error(snr_filt);
-        f_height        = f_height(snr_filt);
+        f_velo              = c_velocities{i};
+        f_velo_error        = unc_velo_COMBINED{i};
+        f_velo_error_tbl    = unc_velo_COMBINED_table{i};
+        f_height            = c_heights{i};
+        f_height_unc        = unc_height_SYSTEMATIC{i};
+        f_velo              = f_velo(snr_filt);
+        f_velo_error        = f_velo_error(snr_filt);
+        f_velo_error_tbl    = f_velo_error_tbl(snr_filt);
+        f_height            = f_height(snr_filt);
+        f_height_unc        = f_height_unc(snr_filt);
 
-    c_velocities_plot{i}           = f_velo;
-    c_velo_error_combined_plot{i}  = f_velo_error;
-    c_heights_plot{i}              = f_height;
-
-
-%   %plotting
-%             figure(1);
-%             subplot(1,3,1);
-%             plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
-%             xlim([0,1000]);
-%             ylim([0,max(c_heights{i})])
-%             xlabel('Mean Velocity')
-%             ylabel('Height above surface [mm]')
-%             grid on;
-%             set(gca,'FontSize', 15);
-%             set(gca,'fontname','times')  % Set it to times
-%         
-%             subplot(1,3,2);
-%             plot(c_SNRs{i},c_heights{i},'r','Linewidth',2);
-%             xlabel('SNR')
-%             grid on;
-%             xlim([0,max(c_SNRs{i})]);
-%             ylim([0,max(c_heights{i})])
-%             hold off;
-%             title(['SNR Filtering for Run ',num2str(uniqueruns(i))])
-%             set(gca,'FontSize', 15);
-%             set(gca,'fontname','times')  % Set it to times
-%             xline(snr_thresh,'k','Linewidth',3);
-%         
-%             subplot(1,3,3);
-%             plot(f_velo,f_height,'r','Linewidth',2);
-%             ylim([0,max(c_heights{i})])
-%             ylim([0,max(c_heights{i})])
-
-
+    c_velocities_plot{i}            = f_velo;
+    unc_velo_COMBINED_plot{i}       = f_velo_error;
+    unc_velo_COMBINED_table{i}      = f_velo_error_tbl;
+    c_heights_plot{i}               = f_height;
+    unc_height_SYSTEMATIC{i}        = f_height_unc;
 
 end
 
-%% Plotting Everything, in order
-for i= 1:length(runs_list)
+% %% Plotting Everything, in order
+% for i= 1:length(runs_list)
+% 
+% min_velo = c_velo_bounds{i};
+% min_velo = min_velo(:,1);
+% max_velo = c_velo_bounds{i};
+% max_velo = max_velo(:,2);
+% 
+% figure(2);
+% subplot(1,2,1);
+% plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
+% xlim([0,1000]);
+% ylim([0,max(c_heights{i})])
+% xlabel('Mean Velocity')
+% ylabel('Height above surface [mm]')
+% grid on;
+% set(gca,'FontSize', 15);
+% set(gca,'fontname','times')  % Set it to times
+% 
+% subplot(1,2,2);
+% plot(c_velocities_plot{i},c_heights_plot{i},'b','Linewidth',2);
+% hold on;
+% plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},'k');
+% 
+%     plot(min_velo,c_heights{i},'r','Linewidth',2);
+%     plot(max_velo,c_heights{i},'r','Linewidth',2);
+% 
+% plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},'k');
+% grid on;    
+% title(['Mean Velocity for Run', num2str(uniqueruns(i))]);
+% xlabel('Velocity [m/s]');
+% ylabel('Height above the surface [mm]');
+% legend('Mean Velocity','Mean Velocity 95% CI','Fitting Bounds');
+% set(gca,'FontSize', 15);
+% set(gca,'fontname','times')  % Set it to times
+% xlim([0,900]);
+% ylim([0,max(c_heights_plot{i})])
+% hold off;
+% end
 
-min_velo = c_velo_bounds{i};
-min_velo = min_velo(:,1);
-max_velo = c_velo_bounds{i};
-max_velo = max_velo(:,2);
+%% Inner Variables
+        Mach = Run_Mach(i,1);
+        T_inf = 56; %K, static temp
+        P_inf = 370; %Pa, static pressure
+        U_inf = Run_Mean_Velo(i,1); %m/s
+        use_runs = [PB_repeat,SRA_repeat];
 
-figure(2);
-subplot(1,2,1);
-plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
-xlim([0,1000]);
-ylim([0,max(c_heights{i})])
-xlabel('Mean Velocity')
-ylabel('Height above surface [mm]')
-grid on;
-set(gca,'FontSize', 15);
-set(gca,'fontname','times')  % Set it to times
+    for i= 1:length(use_runs)
+        j = runs_list(uniqueruns==use_runs(i));
 
-subplot(1,2,2);
-plot(c_velocities_plot{i},c_heights_plot{i},'b','Linewidth',2);
-hold on;
-plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},'k');
+        %FLEET
+            y = c_heights_plot{j};
+            u = c_velocities_plot{j};
+            u_up = c_velocities_plot{j}+unc_velo_COMBINED_plot{j};
+            u_dn = c_velocities_plot{j}-unc_velo_COMBINED_plot{j};
+            [u_plus_c,u_vd_plus_c,y_plus_c] = InnerVariableCalculator(u,y,Mach,T_inf,P_inf,U_inf);
+            [u_plus_c_up,u_vd_plus_c_up,~] = InnerVariableCalculator(u_up,y,Mach,T_inf,P_inf,U_inf);
+            [u_plus_c_dn,u_vd_plus_c_dn,~] = InnerVariableCalculator(u_dn,y,Mach,T_inf,P_inf,U_inf);
+                
+        %CFD
+            cfd_y = RANS.height;
+            cfd_velo = RANS.Velo;
+            U_inf = max(cfd_velo);
+            [u_plus_c_cfd,u_vd_plus_c_cfd,y_plus_c_cfd] = InnerVariableCalculator(cfd_velo,cfd_y,Mach,T_inf,P_inf,U_inf);
+    
+        %Qualitative cutoff height 
+        cutoff_height = 0.5; %mm
+        [~,~,cutoff_inner_y] = InnerVariableCalculator(1000,cutoff_height,Mach,T_inf,P_inf,U_inf);
 
-    plot(min_velo,c_heights{i},'r','Linewidth',2);
-    plot(max_velo,c_heights{i},'r','Linewidth',2);
+        %saving out data
+            inner_velo_fleet{j} = [u_plus_c,u_plus_c_dn,u_plus_c_up];
+            inner_y_fleet{j}    = y_plus_c;
+            inner_velo_cfd{j}   = u_plus_c_cfd;
+            inner_y_cfd{j}      = y_plus_c_cfd;
+    end
 
-plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},'k');
-grid on;    
-title(['Mean Velocity for Run', num2str(uniqueruns(i))]);
-xlabel('Velocity [m/s]');
-ylabel('Height above the surface [mm]');
-legend('Mean Velocity','Mean Velocity 95% CI','Fitting Bounds');
-set(gca,'FontSize', 15);
-set(gca,'fontname','times')  % Set it to times
-xlim([0,900]);
-ylim([0,max(c_heights_plot{i})])
-hold off;
+%% Saving data into a table for CFD Validation
+for i = 1:length(runs_list)
+
+    velo            = round(c_velocities_plot{i},1);
+    velo_unc        = round(unc_velo_COMBINED_table{i},1);
+    heights         = round(c_heights_plot{i},3);
+    heights_unc     = round(unc_height_SYSTEMATIC{i},3);
+    down_loc        = downstream_loc(i).*ones(size(velo));
+    down_loc_unc    = downstream_loc_unc(i).*ones(size(velo));
+    span_loc        = spanwise_loc(i).*ones(size(velo));
+    span_loc_unc    = spanwise_loc_unc(i).*ones(size(velo));
+
+    T = table(velo,velo_unc,heights,heights_unc,down_loc,down_loc_unc,span_loc,span_loc_unc,'VariableNames',table_headers);
+    sheet_name = ['Run ',num2str(uniqueruns(i))];
+    writetable(T,excel_filepath,'Sheet',sheet_name,'Range','A1')
+
 end
 
-%% Plotting relevant runs together
+%% Plotting
 unc_linewidth = 1;
 
     %PB_repeatability
@@ -509,8 +616,8 @@ unc_linewidth = 1;
             for j = 1:length(PB_repeat)
                 i = runs_list(uniqueruns==PB_repeat(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
                 maxheight = max([maxheight,max(c_heights_plot{i})]);
             end
         
@@ -538,8 +645,8 @@ unc_linewidth = 1;
             for j = 1:length(SRA_repeat)
                 i = runs_list(uniqueruns==SRA_repeat(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             end
         
             grid on;    
@@ -570,8 +677,8 @@ unc_linewidth = 1;
                 i = runs_list(uniqueruns==both_repeat(j));
                 c = ceil(j/length(PB_repeat));
                 color_plot = [':',colorlist(c)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             end
         
             grid on;    
@@ -600,8 +707,8 @@ unc_linewidth = 1;
         subplot(1,3,j);
         plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
         hold on;
-        plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-        plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         grid on;    
         title(['PB ',num2str(downstream_loc_run),' mm']);
         xlabel('Velocity [m/s]');
@@ -621,8 +728,8 @@ unc_linewidth = 1;
         subplot(1,3,j);
         plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
         hold on;
-        plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-        plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         grid on;    
         title(['PB ',num2str(downstream_loc_run),' mm']);
         xlabel('Velocity [m/s]');
@@ -645,8 +752,8 @@ unc_linewidth = 1;
             for j = 1:length(PB_repeat)
                 i = runs_list(uniqueruns==PB_repeat(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             end
             
             downstream_loc_run = downstream_loc(i);
@@ -675,8 +782,8 @@ unc_linewidth = 1;
         for j = 1:length(PB_BL_sp)
             i = runs_list(uniqueruns==PB_BL_sp(j));
             color_plot = [':',colorlist(j)];
-            plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-            plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+            plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+            plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         end
     
         grid on;    
@@ -706,8 +813,8 @@ unc_linewidth = 1;
         subplot(1,3,j);
         plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
         hold on;
-        plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-        plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         grid on;    
         title(['SRA ',num2str(downstream_loc_run),' mm']);
         xlabel('Velocity [m/s]');
@@ -726,8 +833,8 @@ unc_linewidth = 1;
         subplot(1,3,1);
         plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
         hold on;
-        plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-        plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         grid on;    
         title(['SRA ',num2str(downstream_loc_run),' mm']);
         xlabel('Velocity [m/s]');
@@ -747,8 +854,8 @@ unc_linewidth = 1;
         subplot(1,3,2);
         plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
         hold on;
-        plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-        plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+        plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
         grid on;    
         title(['SRA ',num2str(downstream_loc_run),' mm']);
         xlabel('Velocity [m/s]');
@@ -771,8 +878,8 @@ unc_linewidth = 1;
             for j = 1:length(SRA_repeat)
                 i = runs_list(uniqueruns==SRA_repeat(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             end
             
             downstream_loc_run = downstream_loc(i);
@@ -801,8 +908,8 @@ unc_linewidth = 1;
             for j = 1:length(SRA_BL_sp)
                 i = runs_list(uniqueruns==SRA_BL_sp(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             end
         
             grid on;    
@@ -832,8 +939,8 @@ unc_linewidth = 1;
                 subplot(1,3,j);
                 i = runs_list(uniqueruns==PB_downstm(j));
                 color_plot = [':',colorlist(j)];
-                plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
     
                 downstream_loc_run = downstream_loc(i);
                 spanwise_loc_run = spanwise_loc(i);
@@ -862,8 +969,8 @@ unc_linewidth = 1;
         for j = 1:length(PB_downstm)
             i = runs_list(uniqueruns==PB_downstm(j));
             color_plot = [':',colorlist(j)];
-            plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
-            plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+            plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+            plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
             maxheight = max([maxheight,max(c_heights_plot{i})]);
         end
     
@@ -923,7 +1030,7 @@ unc_linewidth = 1;
 
 %Synthetic Roughness with  CFD, previous FLEET, and current FLEET all in one plot
     %current data
-        labels_plot = strings(6,1);
+        labels_plot = strings(5,1);
         maxheight = 0;
         figure(13);
         for j = 1:length(SRA_BL_sp)
@@ -960,8 +1067,238 @@ unc_linewidth = 1;
         xlim([0,1000]);
         ylim([0,maxheight+1]);
 
+%Synthetic Roughness with  CFD, previous FLEET, and current FLEET all in one plot
+    %current data
+        labels_plot = strings(6,1);
+        maxheight = 0;
+        figure(13);
+        for j = 1:length(SRA_BL_sp)
+            i = runs_list(uniqueruns==SRA_BL_sp(j));
+            plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
+            hold on;
+            labels_plot(j) = strcat(num2str(downstream_loc(i))," mm Downstream, FLEET, Walls On");
+            maxheight = max([maxheight,max(c_heights_plot{i})]);
+        end
+%         for j = 1:length(SRA_BL_sp)
+%             i = runs_list(uniqueruns==PB_BL_sp(j));
+%             color_plot = [':',colorlist(j)];
+%             plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%             plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+%         end
+
+    %previous data
+        plot(SRA.Mean_Velo,SRA.Heights,'m','Linewidth',2);
+        labels_plot(4) = "193 mm Downstream, FLEET, Walls Off";
+%         plot(PB.Mean_Velo-PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+%         plot(PB.Mean_Velo+PB.Mean_Velo_Unc,PB.Heights,':m','Linewidth',unc_linewidth);
+
+    %CFD
+        plot(RANS.Velo,RANS.height,'k','Linewidth',2);
+        labels_plot(5) = "193 mm Downstream, RANS, Walls Off";
+
+        grid on;    
+        title('SRA Boundary Layer Evolution');
+        xlabel('Velocity [m/s]');
+        ylabel('Height above the surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,1000]);
+        ylim([0,maxheight+1]);
+        
 
 
+            %Plotting the most upstream SRA against the laminar profile
+                %SRA stuff
+                labels_plot = strings(length(SRA_BL(1:2)),1);
+                maxheight = 0;
+                figure(14);
+                for j = 1:2
+                    i = runs_list(uniqueruns==SRA_BL(j));
+                    plot(c_velocities_plot{i},c_heights_plot{i},colorlist(j),'Linewidth',2);
+                    hold on;
+                    labels_plot(j) = strcat(num2str(c_downstream_locs{i}), ' mm Downstream, SRA FLEET, Walls On');
+                    maxheight = max([maxheight,max(c_heights_plot{i})]);
+                end
+                %Laminar RANS
+                    plot(Lam_CFD.Velo,Lam_CFD.height,'k','Linewidth',2);
+                    labels_plot(3) = "193 mm Downstream, Laminar RANS, Walls Off";
+
+                %previous data
+                    plot(Lam_FLEET.Mean_Velo,Lam_FLEET.Heights,'m','Linewidth',2);
+                    plot(Lam_FLEET.Mean_Velo-Lam_FLEET.Mean_Velo_Unc,Lam_FLEET.Heights,':m','Linewidth',unc_linewidth);
+                    plot(Lam_FLEET.Mean_Velo+Lam_FLEET.Mean_Velo_Unc,Lam_FLEET.Heights,':m','Linewidth',unc_linewidth);
+                    labels_plot(4) = "193 mm Downstream, Laminar FLEET, Walls Off";
+
+                for j = 1:2
+                    i = runs_list(uniqueruns==SRA_BL(j));
+                    color_plot = [':',colorlist(j)];
+                    plot(c_velocities_plot{i}-unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                    plot(c_velocities_plot{i}+unc_velo_COMBINED_plot{i},c_heights_plot{i},color_plot,'Linewidth',unc_linewidth);
+                end
+            
+                grid on;    
+                title('SRA vs Laminar');
+                xlabel('Velocity [m/s]');
+                ylabel('Height above the surface [mm]');
+                legend(labels_plot(:));
+                set(gca,'FontSize', 15);
+                set(gca,'fontname','times')  % Set it to times
+                xlim([0,1000]);
+                ylim([0,maxheight+1])
 
 
+%     %% Plotting all Runs
+%             labels_plot = strings(length(all_runs),1);
+%             maxheight = 0;
+%             figure(16);
+%             for j = 1:length(all_runs)
+%                 i = runs_list(uniqueruns==all_runs(j));
+%                 plot(c_velocities_plot{i},c_heights_plot{i},'Linewidth',2);
+%                 hold on;
+%                 labels_plot(j) = strcat("Run: ",num2str(all_runs(j)));
+%             end
+% %             for j = 1:length(all_runs)
+% %                 i = runs_list(uniqueruns==all_runs(j));
+% %                 plot(c_velocities_plot{i}-c_velo_error_combined_plot{i},c_heights_plot{i},'Linewidth',unc_linewidth);
+% %                 plot(c_velocities_plot{i}+c_velo_error_combined_plot{i},c_heights_plot{i},'Linewidth',unc_linewidth);
+% %                 maxheight = max([maxheight,max(c_heights_plot{i})]);
+% %             end
+% %         
+%             grid on;    
+%             title('All Runs');
+%             xlabel('Velocity [m/s]');
+%             ylabel('Height above the surface [mm]');
+%             legend(labels_plot(:));
+%             set(gca,'FontSize', 15);
+%             set(gca,'fontname','times')  % Set it to times
+%             xlim([0,1000]);
+%             ylim([0,maxheight+1])
 
+%% Inner Variable Plotting
+ci_lw = 1;
+
+%%______________________________Pizza Box_________________________%%
+
+       %Ideal inner variable scaling
+        y_ideal = logspace(1,2);
+        xi = 0.41;
+        C = 5;
+        u_ideal = (1/xi).*log(y_ideal)+C;
+            %viscous sublayer
+        y_visc = logspace(-1,1);
+        u_visc = y_visc;
+                
+        labels_plot = strings(7,1);
+        figure(17);
+        semilogx(y_ideal,u_ideal,'k','Linewidth',2);
+        hold on;
+        semilogx(y_visc,u_visc,'--k','Linewidth',2);
+%         semilogx(y_plus_c_cfd,u_plus_c_cfd,'m','Linewidth',2);
+
+        labels_plot(1:2) = ["Logarithmic Law of the Wall (0.41,5)";"Viscous Sublayer"];%;"RANS CFD"];
+        
+    for i= 1:length(PB_repeat)
+        j = runs_list(uniqueruns==PB_repeat(i));
+
+        %FLEET
+            fleet_u = inner_velo_fleet{j};
+            u_plus_c    = fleet_u(:,1);
+            y_plus_c = inner_y_fleet{j};
+
+        %plotting innver variable cfd
+        semilogx(y_plus_c,u_plus_c,colorlist(i),'Linewidth',2);
+        labels_plot(i+2) = strcat("FLEET - PB, Run ",num2str(uniqueruns(j)));
+        
+    end
+    xline(cutoff_inner_y,':k','Linewidth',2)
+    labels_plot(6) = "0.5 mm above surface";
+
+  for i= 1:length(PB_repeat)
+        j = runs_list(uniqueruns==PB_repeat(i));
+
+        %FLEET
+            fleet_u = inner_velo_fleet{j};
+            u_plus_c    = fleet_u(:,1);
+            u_plus_c_dn = fleet_u(:,2);
+            u_plus_c_up = fleet_u(:,3);
+            y_plus_c = inner_y_fleet{j};
+
+        
+        %plotting CI
+                color_plot = [':',colorlist(i)];
+        semilogx(y_plus_c,u_plus_c_up,color_plot,'Linewidth',ci_lw);
+        semilogx(y_plus_c,u_plus_c_dn,color_plot,'Linewidth',ci_lw);
+  end
+
+    legend(labels_plot(:));
+    set(gca,'FontSize', 20);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0.25,max(y_plus_c)+25])
+    ylim([0,20])
+    grid on;
+    xlabel('y^+')
+    ylabel('u^+_e_f_f')
+    title('PB Inner Variables')
+
+%%______________________________Synthetic Roughness_________________________%%
+
+       %Ideal inner variable scaling
+        y_ideal = logspace(1,2);
+        xi = 0.41;
+        C = 5;
+        u_ideal = (1/xi).*log(y_ideal)+C;
+            %viscous sublayer
+        y_visc = logspace(-1,1);
+        u_visc = y_visc;
+                
+        labels_plot = strings(7,1);
+        figure(18);
+        semilogx(y_ideal,u_ideal,'k','Linewidth',2);
+        hold on;
+        semilogx(y_visc,u_visc,'--k','Linewidth',2);
+%         semilogx(y_plus_c_cfd,u_plus_c_cfd,'m','Linewidth',2);
+
+        labels_plot(1:2) = ["Logarithmic Law of the Wall (0.41,5)";"Viscous Sublayer"];%;"RANS CFD"];
+        
+    for i= 1:length(SRA_repeat)
+        j = runs_list(uniqueruns==SRA_repeat(i));
+
+        %FLEET
+            fleet_u = inner_velo_fleet{j};
+            u_plus_c    = fleet_u(:,1);
+            y_plus_c = inner_y_fleet{j};
+
+        %plotting innver variable cfd
+        semilogx(y_plus_c,u_plus_c,colorlist(i),'Linewidth',2);
+        labels_plot(i+2) = strcat("FLEET - SRA, Run ",num2str(uniqueruns(j)));
+    end
+    xline(cutoff_inner_y,':k','Linewidth',2)
+    labels_plot(6) = "0.5 mm above surface";
+
+  for i= 1:length(SRA_repeat)
+        j = runs_list(uniqueruns==SRA_repeat(i));
+
+        %FLEET
+            fleet_u = inner_velo_fleet{j};
+            u_plus_c    = fleet_u(:,1);
+            u_plus_c_dn = fleet_u(:,2);
+            u_plus_c_up = fleet_u(:,3);
+            y_plus_c = inner_y_fleet{j};
+
+        
+        %plotting CI
+                color_plot = [':',colorlist(i)];
+        semilogx(y_plus_c,u_plus_c_up,color_plot,'Linewidth',ci_lw);
+        semilogx(y_plus_c,u_plus_c_dn,color_plot,'Linewidth',ci_lw);
+  end
+
+    legend(labels_plot(:));
+    set(gca,'FontSize', 20);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0.25,max(y_plus_c)+25])
+    ylim([0,20])
+    grid on;
+    xlabel('y^+')
+    ylabel('u^+_e_f_f')
+    title('SRA Inner Variables')
