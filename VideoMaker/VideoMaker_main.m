@@ -3,7 +3,7 @@ clear all;close all;clc;
 %% Video Maker (Main)
 % This script turns a series of processed images into a video file
 
-run = 2;
+run = 8;
 folderpath = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\Fit_images\R";
 centroid_folderpath =  "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\Filtered_ProcessedData";
 wall_loc_folderpath = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData";
@@ -48,7 +48,7 @@ filt_binary = ~isnan(filt_centroids);
 vid_filepath = strcat("Vid_nofit_Run",num2str(run),"_Ims",num2str(numims),".avi");
 v = VideoWriter(vid_filepath,'Uncompressed AVI');
 v.FrameRate = 20;
-open(v)
+% open(v)
 fullfig;
 for i = 1:numims
 
@@ -86,8 +86,9 @@ for i = 1:numims
     scatter(c2_mm,y_mm_all_c2','*r','Linewidth',2);
     hold off;
 
-    frame = getframe(gcf);
-    writeVideo(v,frame);
+    pause(0.5)
+%     frame = getframe(gcf);
+%     writeVideo(v,frame);
 end
 
-close(v)
+% close(v)

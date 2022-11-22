@@ -44,10 +44,10 @@ clear all;close all;clc;
 
     %Data processing inputs
     %5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495
-    run = [5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
+    run = [5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
     lam_runs = [5492;5493]; %these runs were closest behind the trips and should be fit with unique bounds to ensure the curve fitting algorithm can identify the gates
     cross_shock_runs = [5487;5488;5489];  %these runs were downstream the crossing shocks and thus the 'g2 bounds' should not approach the freestream
-    total_im_process = 1000; %NaN if process all
+    total_im_process = NaN; %NaN if process all
     total_im_preprocess = 800; 
     lens_standoff_dist = 300; %mm
     fitting_limits =    [25,NaN,3,10,NaN,6;...
@@ -86,6 +86,7 @@ clear all;close all;clc;
     create_prerun_flare_dataset =  [true;false;false;false;false;...
                                     false;false;false;true;true;...
                                     true;true;true;true]; % create a flare-subtraction mask using the prerun data from this run?
+    num_ims_runs = zeros(length(create_prerun_flare_dataset),1);
 
 % stuff for near-wall sensitivity
     flare_amp_mod = [-0.2,-0.1,0,0.1,];
@@ -133,26 +134,23 @@ for run_loop = run_stepper(binary_proc_runs)
 
         %total number of images to process if I want to process all of them
         if isnan(total_im_process)
-            total_im_process = run_start_end(run_loop,2)-run_start_end(run_loop,1)-1;
+            total_im_process = run_start_end(2)-run_start_end(1)-1;
         end
 
     %% Synthetic Data for use if the switch is flipped
-        synth_switch = false;  
+        synth_switch = true;  
         synth_numimages = 500;
         
         if synth_switch
-            f = fullfile('ProcessedData',['ProcessedData_Run',num2str(run_loop),'*']);
+            f = fullfile('ProcessedData',['FullData_Run',num2str(run_loop),'*']);
             fstruct = dir(f);
             synth_real_replicate = fullfile('ProcessedData',fstruct.name);
-    
-    %         total_im_process(isnan(total_im_process)) = length(run_start_end(run,1):(run_start_end(run,2)-1));
-    %         synth_real_replicate = ['ProcessedData/ProcessedData_Run',num2str(run),'_Images',num2str(total_im_process),'.mat'];
             total_im_process = synth_numimages;
     
             [synthfilepath,run_start_end_synth,nondim_velo_error,synth_input_tau_fit,...
                 synth_input_velocity_mean] = Synthetic_Data_Gen(Run_Conditions_filepath,...
-             Resolution_filepath,run_loop,synth_real_replicate,synth_numimages,ROI(run_loop,:),fitting_limits);
-            run_start_end(run_loop,:) = run_start_end_synth(run_loop,:);
+             Resolution_filepath,run_loop,synth_real_replicate,synth_numimages,ROI,fitting_limits);
+            run_start_end = run_start_end_synth(run_loop,:);
         else
             synthfilepath = '';
             synth_numimages = total_im_process;
@@ -171,6 +169,7 @@ for run_loop = run_stepper(binary_proc_runs)
         
         if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
                 load(data_processing_filepath);
+                num_ims_runs(run_loop) = numimages;
             else % Bounds don't already exist, compute them
             %% Preprocessing (getting mean data, image bounding/ROI, filtering, fitting bounding)
                 [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
@@ -199,21 +198,20 @@ for run_loop = run_stepper(binary_proc_runs)
             save(data_processing_filepath,'red_centroids','red_velocity','red_velocity_s','red_velocity_r','red_g2SNR',...
             'gate1_location_bounds','gate2_location_bounds','numimages','synth_switch','run_inclination_angle',...
             'run_inclination_angle_unc','emissionlocatingdata','pixel_um_resolution','tau_fit','uncertainty_wall_loc_pix','doublegauss_fitvariables',...
-            'constant_background','gate1_location_bounds', 'gate2_location_bounds','zero_height_ref_unc','background_totalfit','y_mm');
+            'constant_background','gate1_location_bounds', 'gate2_location_bounds','zero_height_ref_unc','background_totalfit','y_mm','imageData_mean');
+            num_ims_runs(run_loop) = numimages;
 
 
         end
-end
 
-for run_loop = run_stepper(binary_proc_runs)
     %% Postprocessing (filtering and calculating time-averaged velocimetry data)
     [velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
-        velocity_rms_s,mean_SNR,row_mm,sufficient_counter,filt_centroids] ...
+        velocity_rms_s,mean_SNR,row_mm,sufficient_counter,filt_centroids,filt_velocity] ...
         = BLPostprocessing(red_centroids,...
         red_velocity,red_velocity_s,red_velocity_r,red_g2SNR,...
         gate1_location_bounds,gate2_location_bounds,...
         numimages,synth_switch,pixel_um_resolution,...
-        emissionlocatingdata,y_mm);
+        emissionlocatingdata,y_mm,imageData_mean);
     
     %% Plotting
     BLPlotter(velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
@@ -231,7 +229,6 @@ for run_loop = run_stepper(binary_proc_runs)
         synthfilepath,synth_switch,nondim_velo_error,...
         synth_input_tau_fit,synth_input_velocity_mean,...
         zero_height_ref_unc,sufficient_counter,...
-        background_totalfit,filt_centroids);
-
+        background_totalfit,filt_centroids,filt_velocity);
 
 end

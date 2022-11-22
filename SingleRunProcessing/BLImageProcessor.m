@@ -67,7 +67,7 @@ red_move_ROI_ud = []; %correction in pixels
                 constant_background,run,cfd_turb_prof,synth_switch,near_wall_g1_scale,noise);
     
             %% Save Image and centroids for video
-            SaveImage(run,imageprocess_numbers,imloop,imageData_ROI,temp_centroids)
+%             SaveImage(run,imageprocess_numbers,imloop,imageData_ROI,temp_centroids)
     
             %% Sort temporary variables into the reduction variables
             red_centroids = [red_centroids,temp_centroids]; %centroid locations as f(y) for each image

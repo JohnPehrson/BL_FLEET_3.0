@@ -12,9 +12,9 @@ out_centroids = zeros(size(red_centroids));
 
 %% Setting thresholds for the various parameters and creating a binary map
 %centroids not near end bounds
-nearbounds = 0.1;
-filt_g1_bounds_input = and(abs(gate1_location_bounds(:,1)-g1_centroids)>nearbounds,abs(gate1_location_bounds(:,2)-g1_centroids)>nearbounds);
-filt_g2_bounds_input = and(abs(gate2_location_bounds(:,1)-g2_centroids)>nearbounds,abs(gate2_location_bounds(:,2)-g2_centroids)>nearbounds);
+nearbounds = 1;
+filt_g1_bounds_input = and(abs(gate1_location_bounds(:,1)-g1_centroids)>nearbounds,abs(gate1_location_bounds(:,3)-g1_centroids)>nearbounds);
+filt_g2_bounds_input = and(abs(gate2_location_bounds(:,1)-g2_centroids)>nearbounds,abs(gate2_location_bounds(:,3)-g2_centroids)>nearbounds);
 filt_g1_bounds = filt_g1_bounds_input;
 filt_g2_bounds = filt_g2_bounds_input;
 
@@ -37,7 +37,7 @@ lower_bound_snr(lower_bound_snr<0) = 0;
 filt_SNR_rowwise = red_g2SNR>lower_bound_snr;
 
 %sufficient SNR based on image average
-snr_thresh_min = 10; %# minimum permitted average SNR per row
+snr_thresh_min = 6; %# minimum permitted average SNR per row
 mean_row_signal = mean(red_g2SNR,2);
 filt_SNR = mean_row_signal>snr_thresh_min;
 

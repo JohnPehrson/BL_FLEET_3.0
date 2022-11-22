@@ -7,7 +7,7 @@ function [velocity_mean,heights_binary] = SynthSmoothVelo(velocity_mean,heights,
         heights_morezero = heights(heights_binary);
         
         %CFD Data
-        T = readtable("C:\Users\clark\Documents\GitHub\BL_FLEET_2.0\RawDataProcessing\SynthData\Case056NoTunnel.xlsx");
+        T = readtable("C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\Case056NoTunnel.xlsx");
         T_height = T{:,1}.*1000;
         T_velo = T{:,2};
         

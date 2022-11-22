@@ -53,7 +53,7 @@ max_height = row_mm(min(sufficient_counter));
     grid on;    
     ylim([0,max_height]);
     title('SNR in Gate 2');
-    xlabel('Total Pixel Intensity');
+    xlabel('SNR in Gate 2');
     ylabel('Height above the surface [mm]');
     set(gca,'FontSize', 15);
     set(gca,'fontname','times')  % Set it to times
