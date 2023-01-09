@@ -7,6 +7,7 @@ clear all;close all;clc;
 %% Overarching Variables
 folder_path                 = "C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\"; %"C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\ProcessedData\";
 file_partial_name           = "FullData_Run";
+file_partial_name_synth     = "FullData_Synth_Run";
 Run_Conditions_filepath     = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';   %stuff like gates and delays
 Resolution_filepath         = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';                    %resolution
 ACE_On_Condition_filepath   = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat';                    %resolution
@@ -116,17 +117,31 @@ all_runs    = [5479,5483:5495];
     c_taus          = cell(length(decay_filepaths),1);
     c_tau_errors    = cell(length(decay_filepaths),1);
 
+    %synthetic data variables
+    s_velocities             = cell(length(runs_list),1); 
+    s_rms                    = cell(length(runs_list),1); 
+    s_rms_uncertainty        = cell(length(runs_list),1); 
+    s_SNRs                   = cell(length(runs_list),1); 
+    s_decay                  = cell(length(runs_list),1); 
+    s_tau_input              = cell(length(runs_list),1); 
+    s_velo_corr              = cell(length(runs_list),1); 
+    s_heights                = cell(length(runs_list),1); 
+    synth_vert_offset        = [0,15,12,0,-5,0,0,0,0,0,0,-15,0,0];
+    unc_rms_synthetic        = cell(length(runs_list),1); 
+
     %save out data into an excel file
         %headers
         table_headers = {'Mean Velocity [m/s]','Uncertainty in Mean Velocity [m/s]',...
                         'RMS Velocity [m/s]','Uncertainty in RMS Velocity [m/s]','Height above the Test Article [mm]',...
         	            'Uncertainty in Height above the Test Article [mm]','Location Downstream the Leading Edge [mm]',...
                     	'Uncertainty in Downstream Location  [mm]','Spanwise Location [mm]','Uncertainty in Spanwise Location [mm]'};
-        excel_filepath = "Mean_Velo_FLEET_Sept2022.xlsx";
+        excel_filepath = "FLEET_Sept2022.xlsx";
 
 %% Loading in Data from the Sept 2022 Campaign
 for i= 1:length(runs_list)
     load(fullfile(folder_path,ordered_filepaths(i)))
+
+    if i ~=14
     c_velocities{i}             = velocity_mean;
     c_rms{i}                    = velocity_rms;
     c_heights{i}                = velocimetry_geometricloc(:,5)';
@@ -141,6 +156,25 @@ for i= 1:length(runs_list)
     unc_rms_centroid_fit{i}     = velocity_rms_r;
     unc_rms_resolution{i}       = velocity_rms_s;
     c_num_ims{i}                = invar_image_compare;
+
+    else %run 14
+        height_binary               = velocimetry_geometricloc(:,5)'<8.5; 
+        c_velocities{i}             = velocity_mean(height_binary);
+        c_rms{i}                    = velocity_rms(height_binary);
+        c_heights{i}                = velocimetry_geometricloc(height_binary',5)';
+        c_gates{i}                  = Gates(i,:);
+        c_delays{i}                 = Delays(i,:);
+        c_SNRs{i}                   = mean_SNR(height_binary);
+        c_resolutions{i}            = pixel_um_resolution(i,:);
+        c_wall_location_unc{i}      = zero_height_ref_unc;
+        c_decay{i}                  = tau_fit(height_binary);
+        unc_velo_centroid_fit{i}    = velocity_mean_r(height_binary);
+        unc_velo_resolution{i}      = velocity_mean_s(height_binary);
+        unc_rms_centroid_fit{i}     = velocity_rms_r(height_binary);
+        unc_rms_resolution{i}       = velocity_rms_s(height_binary);
+        c_num_ims{i}                = invar_image_compare;
+    end
+
 end
 
 %% Load in CFD Data
@@ -150,34 +184,129 @@ end
 [near_wall_fitobject] = NearWall_Uncertainty_Calculator(near_wall_folder_path,near_wall_file_name,Gates,Delays,pixel_um_resolution);
 [near_wall_fitobject_5479] = NearWall_Uncertainty_Calculator(near_wall_folder_path_5479,near_wall_file_name,Gates,Delays,pixel_um_resolution);
 
+%% Load in Synthetic Data
+%find filepaths
+        a=dir(strcat(folder_path,file_partial_name_synth, "*.mat"));
+        all_filenames = strings(length(a),1);
+        for i = 1:length(a)
+            all_filenames(i) = a(i).name;
+        end
+        %get only the appropriate runs
+        ordered_filepaths = all_filenames;
+%         ordered_filepaths = strings(length(uniqueruns),1);
+%         for i = 1:length(ordered_filepaths)
+%             filename_exp = strcat(file_partial_name_synth,num2str(runs_list(i)),"_");
+%             which_run_binary = contains(all_filenames,filename_exp);
+%             ordered_filepaths(i) = all_filenames(which_run_binary);
+%         end
+
+%j = 1:length(ordered_filepaths)
+
+for j = 13
+     
+    load(fullfile(folder_path,ordered_filepaths(1)));
+
+    s_velocities{j}             = velocity_mean;
+    s_rms{j}                    = velocity_rms;
+    s_rms_uncertainty{j}        = velocity_rms_s;
+    s_SNRs{j}                   = mean_SNR;
+    s_decay{j}                  = tau_fit;
+    s_tau_input{j}              = synth_input_tau_fit;
+    s_velo_corr{j}               = nondim_velo_error;
+    s_heights{j}                = velocimetry_geometricloc(:,5);
+end
+
+%% Imprecision Correction using the RMS correction 
+for j= 13 %1:length(runs_list)
+
+    %measured data
+    meas_rms =  c_rms{j};
+    meas_snr =  c_SNRs{j};
+    meas_rms_unc = unc_rms_resolution{j};
+
+    %fit synthetic data
+    snr = s_SNRs{j};
+    rms = s_rms{j};
+    unc = s_rms_uncertainty{j};
+    heights = s_heights{j};
+    heights_binary = heights>2.5;%mm
+    snr = snr(heights_binary);
+    rms = rms(heights_binary)+synth_vert_offset(j);
+    unc = unc(heights_binary);
+    synthrmsfit=fit(snr,rms,'power2'); 
+    snr_stepper = linspace(min(snr),max(snr)+100,300);
+       
+    %calculate the corrected rms velocity
+    rms_imprecision = synthrmsfit(meas_snr);
+    for i = 1:length(rms_imprecision)
+        if rms_imprecision(i) > meas_rms(i)
+        rms_imprecision(i) = meas_rms(i);
+        end
+    end
+    rms_real        = sqrt(meas_rms.^2-rms_imprecision.^2);
+    rms_real_unc    = sqrt((meas_rms.^2).*(meas_rms_unc.^2)+(rms_imprecision.^2).*(mean(unc)))./rms_real;
+        %lowest zero-value
+        rms_row_stepper = 1:length(rms_real);
+        zero_rows = rms_row_stepper(rms_real<5);
+        use_below = max(zero_rows);
+    rms_real(rms_row_stepper<=use_below) = NaN;
+    rms_real_unc(rms_row_stepper<=use_below) = NaN;
+
+    %not plotting rms velocity when uncertainty is especially large
+    binary_not_rms = rms_real<rms_real_unc;
+    rms_real(binary_not_rms) = NaN;
+
+        %actually correct for rms velocity
+        c_rms{j} = rms_real;
+        unc_rms_synthetic{j} = rms_real_unc;
+
+    
+
+    figure;
+    scatter(snr,rms,'b','filled');
+    hold on;
+    errorbar(snr,rms,unc,'b');
+    scatter(meas_snr,meas_rms,'k','filled');
+    plot(snr_stepper,synthrmsfit(snr_stepper),'r','Linewidth',2);
+    scatter(meas_snr,rms_real,'k');
+    errorbar(meas_snr,rms_real,rms_real_unc,'k');
+    xlabel('SNR [-]');
+    ylabel('URMS Velocity [m/s]');
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    grid on;
+    title('Imprecision estimate')
+    ylim([0,max(rms)])
+    legend('Synthetic','','Measured','Fit to Synthetic','Corrected RMS Velocity','');
+    xlim([0,max(meas_snr)+10])
+
+end
+
 %% Correcting for Emission Decay
     %get synthetic information from previous simulations
-    for i = 1:length(decay_filepaths)
-    load(fullfile(decay_folderpath,decay_filepaths(i)));
+    for i = 1:length(runs_list)
+        %load data
+            tau_fit             = s_decay{j};
+            synth_input_tau_fit = s_tau_input{j};
+            nondim_velo_error   = s_velo_corr{j};
+        %fit data
+            plot_tau = linspace(min(synth_input_tau_fit),max(synth_input_tau_fit),100);
+            p_tau_lin = polyfit(synth_input_tau_fit,nondim_velo_error,1);
+            nondim_fit_synth = polyval(p_tau_lin,plot_tau);
 
-    binary_tau = synth_input_tau_fit<=440;
-
-    c_taus{i} = synth_input_tau_fit(binary_tau);
-    c_tau_errors{i} = nondim_velo_error(binary_tau);
-    end
-
-    %fit the data
-    all_taus            = [c_taus{1};c_taus{2};c_taus{3}];
-    all_nondim_errors   = [c_tau_errors{1};c_tau_errors{2};c_tau_errors{3}];
-
-    plot_tau = linspace(min(all_taus),max(all_taus),100);
-    p_tau_lin = polyfit(all_taus,all_nondim_errors,1);
-    nondim_fit = polyval(p_tau_lin,plot_tau);
-
-%     figure;
-%     scatter(all_taus,all_nondim_errors);
-%     hold on;
-%     plot(plot_tau,nondim_fit);
-    
-
-    %adjusting the actual data
-    for i= 1:length(runs_list)
-    
+        %plot the fit of a line to the synthetic data
+%             figure;
+%             scatter(synth_input_tau_fit,nondim_velo_error);
+%             hold on;
+%             plot(plot_tau,nondim_fit_synth);
+%             xlabel('Emission Decay Costant [ns]');
+%             ylabel('Error in Mean Velocity');
+%             set(gca,'FontSize', 15);
+%             set(gca,'fontname','times')  % Set it to times
+%             grid on;
+%             title('Decay Correction')
+%             legend('Synthetic Data','Fit to Synthetic Data');
+ 
         %fitting the decay constant of the data
             tau_run = c_decay{i};
             heights_run = c_heights{i};
@@ -195,8 +324,9 @@ end
         %fit
             tau_fit_run = polyfit(heigths_run_f,tau_run_f,1);
             lin_fit_taus = polyval(tau_fit_run,heights_run);       
-       %plotting fit   
+%        %plotting fit   
 %             figure;
+%             hold on;
 %             scatter(tau_run,heights_run,'r');
 %             hold on;
 %             scatter(tau_run_f,heigths_run_f,'b');
@@ -207,24 +337,24 @@ end
 %                             
             %actually changing the real data
              decay_const_unc = [transpose(lin_fit_taus-50),transpose(lin_fit_taus+50)];
-             nondim_fit = polyval(p_tau_lin,lin_fit_taus);
-             nondim_fit_unc = polyval(p_tau_lin,decay_const_unc);
+             nondim_fit_measured    = polyval(p_tau_lin,lin_fit_taus);
+             nondim_fit_unc         = polyval(p_tau_lin,decay_const_unc);
              nondim_unc = abs(nondim_fit_unc(:,1)-nondim_fit_unc(:,2))/2;
-             nondim_fit = nondim_fit.*(0.75);  %%%%%%%%%%%%%%%  Get rid of this when I'm actually doing this for data I've fit using parameters from this dataset
+             nondim_fit_measured = ((nondim_fit_measured-1).*(0.75))+1;
+             nondim_fit_measured(nondim_fit_measured<1) = 1;
         
                 %metrics to manually check the amount of decay correction
-                mean_decay_corr = mean(nondim_fit);
-                min_max_decay_corr = [min(nondim_fit),max(nondim_fit)];
+                mean_decay_corr = mean(nondim_fit_measured)-1;
+                min_max_decay_corr = [min(nondim_fit_measured)-1,max(nondim_fit_measured)-1];
                 disp(['Decay correction for Run ',num2str(uniqueruns(i)),' is '...
                     ,num2str(mean_decay_corr*100),'% with bounds of ',num2str(min_max_decay_corr(1).*100),'% to ',...
                     num2str(min_max_decay_corr(2).*100),'%'])
 
-%              c_velocities{i} = (1+nondim_fit').*c_velocities{i};
+             c_velocities{i} = (nondim_fit_measured').*c_velocities{i};
              unc_velo_emission_decay{i} = (nondim_unc).*c_velocities{i};
-%              c_rms{i} = (1+nondim_fit').*c_rms{i};
+             c_rms{i} = (nondim_fit_measured').*c_rms{i};
              unc_rms_emission_decay{i} = (nondim_unc).*c_rms{i};
     end
-
 
 %% Uncertainty Propogation (wall location, magnification, inclination angle, span angle, near-wall fitting effects)
 for i= 1:length(runs_list)
@@ -286,7 +416,7 @@ for i = 1:length(runs_list)
     %rms velocity
     unc_rms_RANDOM{i} = (1/sqrt(c_num_ims{i})).*sqrt(unc_rms_centroid_fit{i}.^2);
     unc_rms_SYSTEMATIC{i} = sqrt(unc_rms_resolution{i}.^2+unc_rms_emission_decay{i}.^2+unc_rms_magnification{i}.^2 ...
-                                +unc_rms_span_point{i}.^2);
+                                +unc_rms_span_point{i}.^2+unc_rms_synthetic{i}.^2);
     unc_rms_COMBINED{i} = sqrt(unc_rms_RANDOM{i}.^2+unc_rms_SYSTEMATIC{i}.^2);
 
     %heights
@@ -300,14 +430,13 @@ for i = 1:length(runs_list)
     r_height    = c_heights{i};
     r_rms      = c_rms{i};
     r_rms_err  = unc_rms_COMBINED{i};
+    notnan_rms = ~isnan(r_rms);
 
         res = c_resolutions{i};
         pix_wid = 0.75;
         wid = pix_wid.*res(1)./1000; %pixels into mm
     smooth_velo     = smooth(r_height,r_velo,wid,'lowess');
     smooth_velo_err = smooth(r_height,r_velo_err,wid,'lowess');
-    smooth_rms     = smooth(r_height,r_rms,wid,'lowess');
-    smooth_rms_err = smooth(r_height,r_rms_err,wid,'lowess');
 
 %     %plotting
 %         figure(1);
@@ -344,12 +473,9 @@ for i = 1:length(runs_list)
     replace_binary = r_height>wall_effect_height;
     r_velo(replace_binary)      = smooth_velo(replace_binary);
     r_velo_err(replace_binary)  = smooth_velo_err(replace_binary);
-    r_rms(replace_binary)       = smooth_rms(replace_binary);
-    r_rms_err(replace_binary)   = smooth_rms_err(replace_binary);
+
     c_velocities{i}             = r_velo;
     unc_velo_COMBINED{i}        = r_velo_err;
-    c_rms{i}                    = r_rms;
-    unc_rms_COMBINED{i}         = r_rms_err;
 end
 
 %% Propogating uncertainties in height into uncertainty in the mean velocity (mostly for plotting purposes)
@@ -380,7 +506,7 @@ heights         =  c_heights{i};
             unc_rms_COMBINED{i}     = sqrt(unc_rms_COMBINED{i}.^2+unc_velo_heights{i}.^2);
 
 
-%             %plot
+            %plot
 %                 figure;
 %                 subplot(1,2,1);
 %                 plot(velo,heights,'b','Linewidth',2);
@@ -487,40 +613,7 @@ unc_linewidth = 1;
             xlim([0,1000]);
             ylim([0,maxheight+1])
 
-    %SRA vs PB at 22C
-            both_repeat = [PB_repeat,SRA_repeat];
-            labels_plot = ["PB Run","SRA Run","","","",""];
-            proc_list = [1,4,2,3,5,6];
-            maxheight = 0;
-            figure(5);
-            for j = proc_list
-                c = ceil(j/length(PB_repeat));
-                i = runs_list(uniqueruns==both_repeat(j));
-                plot(c_velocities{i},c_heights{i},colorlist(c),'Linewidth',2);
-                hold on;
-                maxheight = max([maxheight,max(c_heights{i})]);
-            end
-                plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
-                labels_plot(7) = strcat("RANS CFD at matching Location");
-            for j = 1:length(both_repeat)
-                i = runs_list(uniqueruns==both_repeat(j));
-                c = ceil(j/length(PB_repeat));
-                color_plot = [':',colorlist(c)];
-                plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
-                plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
-            end
-        
-            grid on;    
-            title('Pizza Box vs Synthetic Roughness');
-            xlabel('Velocity [m/s]');
-            ylabel('Height above the surface [mm]');
-            legend(labels_plot(:));
-            set(gca,'FontSize', 15);
-            set(gca,'fontname','times')  % Set it to times
-            xlim([0,1000]);
-            ylim([0,maxheight+1])
-
-    %PB_BL seperate plots
+     %PB_BL seperate plots
             maxheight = 0;  
             for j= 1:length(PB_BL)
                 i = runs_list(uniqueruns==PB_BL(j));
@@ -1216,4 +1309,490 @@ unc_linewidth = 1;
         set(gca,'fontname','times')  % Set it to times
         xlim([0,200]);
         ylim([0,maxheight+1])
+
+%% Scitech Paper Plots
+close all;
+
+% PB_repeat   = [5484,5485,5486];
+% SRA_repeat  = [5479,5483,5495];
+% PB_BL       = [5491,5490,PB_repeat];
+% PB_BL_sp    = [5491,5490,5486];
+% SRA_BL      = [5492,5493,5494,SRA_repeat];
+% SRA_BL_sp   = [5493,5494,5495];
+% PB_downstm  = [5487,5488,5489]; %C, R, C-downstream
+% all_runs    = [5479,5483:5495];
+lnw = 1;
+cfd_lnw = 2;
+
+figure(21); %men and rms velocity upstream of the shocks
+v_inf = zeros(3,1);
+subplot(2,3,1); %mean, 181 mm
+
+        i = runs_list(uniqueruns==PB_BL(1));
+        plot(c_velocities{i},c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==SRA_BL(1));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(2));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+        plot(aw.u(:,1),aw.h(:,1),cfd_colorlist(1),'Linewidth',cfd_lnw);
+            v_inf(1) = max(aw.u(:,1));
+
+    grid on;    
+    title('Location 1');
+    xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+    ylabel('Height above surface [mm]');
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,900]);
+    ylim([0,12]);
+
+subplot(2,3,2); %mean, 320 mm
+
+        i = runs_list(uniqueruns==PB_BL(2));
+        plot(c_velocities{i},c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==SRA_BL(3));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+        plot(aw.u(:,2),aw.h(:,2),cfd_colorlist(1),'Linewidth',cfd_lnw);
+            v_inf(2) = max(aw.u(:,2));
+        labels_plot= ["PB FLEET","SRA FLEET","RANS CFD"];
+
+    legend(labels_plot)
+    grid on;    
+    title('Location 2');
+    xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,900]);
+    ylim([0,12]);
+
+subplot(2,3,3); %mean, 370 mm
+
+            i = runs_list(uniqueruns==PB_BL(3));
+        plot(c_velocities{i},c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==PB_BL(4));
+        plot(c_velocities{i},c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==PB_BL(5));
+        plot(c_velocities{i},c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(4));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(5));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(6));
+        plot(c_velocities{i},c_heights{i},'r','Linewidth',lnw);
+        plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',cfd_lnw);
+            v_inf(3) = max(aw.u(:,3));
+
+    grid on;    
+    title('Location 3');
+    xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,900]);
+    ylim([0,12]);
+
+subplot(2,3,4); %RMS, 181 mm
+
+            i = runs_list(uniqueruns==PB_BL(1));
+        plot(c_rms{i}./v_inf(1),c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==SRA_BL(1));
+        plot(c_rms{i}./v_inf(1),c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(2));
+        plot(c_rms{i}./v_inf(1),c_heights{i},'r','Linewidth',lnw);
+
+    grid on;    
+    xlabel('$V_{RMS} / \bar{V}_{e}$','Interpreter','Latex')
+    ylabel('Height above surface [mm]');
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,0.2]);
+    ylim([0,6]);
+
+subplot(2,3,5); %RMS, 320 mm
+
+            i = runs_list(uniqueruns==PB_BL(2));
+        plot(c_rms{i}./v_inf(2),c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==SRA_BL(3));
+        plot(c_rms{i}./v_inf(2),c_heights{i},'r','Linewidth',lnw);
+
+    grid on;    
+    xlabel('$V_{RMS} / \bar{V}_{e}$','Interpreter','Latex')
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,0.2]);
+    ylim([0,6]);
+
+subplot(2,3,6); %RMS, 370 mm
+
+            i = runs_list(uniqueruns==PB_BL(3));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==PB_BL(4));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==PB_BL(5));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(4));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(5));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(6));
+        plot(c_rms{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+            xline(0.5,':k');
+    grid on;    
+    xlabel('$V_{RMS} / \bar{V}_{e}$','Interpreter','Latex')
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,0.2]);
+    ylim([0,6]);
+
+
+
+    figure(22); %uncertainty upstream of the shocks
+    
+        subplot(1,2,1);
+            i = runs_list(uniqueruns==PB_BL(3));
+        plot(unc_velo_COMBINED{i},c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==PB_BL(4));
+        plot(unc_velo_COMBINED{i},c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==PB_BL(5));
+        plot(unc_velo_COMBINED{i},c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(4));
+        plot(unc_velo_COMBINED{i},c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(5));
+        plot(unc_velo_COMBINED{i},c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(6));
+        plot(unc_velo_COMBINED{i},c_heights{i},'r','Linewidth',lnw);
+        yline(0.4,':k','Linewidth',2);
+        labels_plot= ["PB FLEET","","","SRA FLEET","","","Refl. Light Height"];
+
+    grid on;    
+    xlabel('Uncertainty in $\bar{V}$ [m/s]','Interpreter','Latex')
+    ylabel('Height above surface [mm]');
+    legend(labels_plot)
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,150]);
+    ylim([0,8]);
+
+      subplot(1,2,2);
+            i = runs_list(uniqueruns==PB_BL(3));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+        hold on;
+            i = runs_list(uniqueruns==PB_BL(4));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==PB_BL(5));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'b','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(4));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(5));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+            i = runs_list(uniqueruns==SRA_BL(6));
+        plot(unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'r','Linewidth',lnw);
+        yline(0.4,':k','Linewidth',2);
+
+    grid on;    
+    xlabel('Uncertainty in $V_{RMS} / \bar{V}_{e}$','Interpreter','Latex')
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([0,0.15]);
+    ylim([0,8]);
+
+    figure(23); %downstream velocity and RMS velocity
+        cfd_j = [4,6,5];
+        maxheight = 0;
+        labels_plot = strings(length(PB_downstm),2);
+            for j = 1:length(PB_downstm)
+                subplot(1,3,j);
+                i = runs_list(uniqueruns==PB_downstm(j));
+                plot(c_velocities{i},c_heights{i},colorlist(j),'Linewidth',2);
+                hold on;
+                maxheight = max([maxheight,max(c_heights{i})]);
+            end
+            for j = 1:length(PB_downstm)
+                subplot(1,3,j);
+                i = runs_list(uniqueruns==PB_downstm(j));
+                color_plot = [':',colorlist(j)];
+                plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
+                    plot(aw.u(:,cfd_j(j)),aw.h(:,cfd_j(j)),cfd_colorlist(1),'Linewidth',2);
+                downstream_loc_run = downstream_loc(i);
+                spanwise_loc_run = spanwise_loc(i);
+                grid on;    
+                legend(strcat("Location ",num2str(j+3)'),'95% CI','','RANS CFD')
+                xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+                ylabel('Height above surface [mm]');
+                set(gca,'FontSize', 15);
+                set(gca,'fontname','times')  % Set it to times
+                xlim([0,900]);
+                ylim([0,13]);
+            end
+
+    mean_upstream_vinf = 862.457;
+    figure(24);
+      labels_plot = strings(length(PB_downstm),1);
+        maxheight = 0;
+        for j = 1:length(PB_downstm)
+            i = runs_list(uniqueruns==PB_downstm(j));
+            plot(c_rms{i}./mean_upstream_vinf,c_heights{i},colorlist(j),'Linewidth',2);
+            hold on;
+            downstream_loc_run = downstream_loc(i);
+            spanwise_loc_run = spanwise_loc(i);
+            labels_plot(j) = strcat("Location ",num2str(j+3));
+        end
+        for j = 1:length(PB_downstm)
+            i = runs_list(uniqueruns==PB_downstm(j));
+            color_plot = ['--',colorlist(j)];
+            plot((c_rms{i}-unc_velo_COMBINED{i})./mean_upstream_vinf,c_heights{i},color_plot,'Linewidth',unc_linewidth);
+            plot((c_rms{i}+unc_velo_COMBINED{i})./mean_upstream_vinf,c_heights{i},color_plot,'Linewidth',unc_linewidth);
+            maxheight = max([maxheight,max(c_heights{i})]);
+        end
+    
+        grid on;    
+        xlabel('$V_{RMS} / \bar{V}_{e}^*$','Interpreter','Latex')
+        ylabel('Height above surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,0.2]);
+        ylim([0,6])
+
+
+    %SRA vs PB at Location 3
+            both_repeat = [PB_repeat(:);SRA_repeat(:)]; %3,1
+            maxheight = 0;
+            figure(5);
+            for j = 1:length(both_repeat)
+                if  ismember(both_repeat(j),PB_repeat) %pizza box
+                    c = 2;
+                else
+                    c = 1;
+                end
+                i = runs_list(uniqueruns==both_repeat(j));
+                plot(c_velocities{i},c_heights{i},colorlist(c),'Linewidth',2);
+                hold on;
+                maxheight = max([maxheight,max(c_heights{i})]);
+            end
+                plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
+            for j = 1:length(both_repeat)
+                i = runs_list(uniqueruns==both_repeat(j));
+                if  ismember(both_repeat(j),PB_repeat) %pizza box
+                    c = 2;
+                else
+                    c = 1;
+                end
+                color_plot = ['--',colorlist(c)];
+                plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
+                plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',unc_linewidth);
+            end
+            plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
+
+            clear labels_plot
+            labels_plot = ["PB","","","SRA","","",strcat("RANS CFD"),"PB 95% CI","","","","","","SRA 95% CI",""];
+        
+            grid on;    
+%             title('Pizza Box vs Synthetic Roughness');
+            xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+            ylabel('Height above surface [mm]');
+            legend(labels_plot(:));
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+            xlim([150,900]);
+            ylim([0,10])
+            hold on;
+
+            
+
+%SRA vs PB at Location 3
+        both_repeat = [PB_repeat(:)]; %3,1
+        maxheight = 0;
+        figure(27);
+        subplot(1,2,1);
+        for j = 1:length(both_repeat)
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            i = runs_list(uniqueruns==both_repeat(j));
+            plot(c_velocities{i},c_heights{i},colorlist(c),'Linewidth',2);
+            hold on;
+            maxheight = max([maxheight,max(c_heights{i})]);
+        end
+        for j = 1:length(both_repeat)
+            i = runs_list(uniqueruns==both_repeat(j));
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            color_plot = ['--',colorlist(c)];
+            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',1);
+            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',1);
+        end
+%         plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
+
+        clear labels_plot
+        labels_plot = ["PB","","","PB 95% CI","","","","",""];
+    
+        grid on;    
+%             title('Pizza Box vs Synthetic Roughness');
+        xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+        ylabel('Height above surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([150,900]);
+        ylim([0,10])
+        hold on;
+
+         both_repeat = [SRA_repeat(:)]; %3,1
+        maxheight = 0;
+        figure(27);
+        subplot(1,2,2);
+        for j = 1:length(both_repeat)
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            i = runs_list(uniqueruns==both_repeat(j));
+            plot(c_velocities{i},c_heights{i},colorlist(c),'Linewidth',1.5);
+            hold on;
+            maxheight = max([maxheight,max(c_heights{i})]);
+        end
+        for j = 1:length(both_repeat)
+            i = runs_list(uniqueruns==both_repeat(j));
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            color_plot = ['--',colorlist(c)];
+            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',1);
+            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},color_plot,'Linewidth',1);
+        end
+%         plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
+
+        clear labels_plot
+        labels_plot = ["SRA","","","SRA 95% CI","","","","",""];
+    
+        grid on;    
+%             title('Pizza Box vs Synthetic Roughness');
+        xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+        ylabel('Height above surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 15);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([150,900]);
+        ylim([0,10])
+        hold on;
+
+%% Calculating t values for repeatability
+points = 200;
+h1 = zeros(points,3);
+v1 = zeros(points,3);
+s = zeros(points,3);
+    for j = 1:length(PB_repeat)
+        i = runs_list(uniqueruns==PB_repeat(j));
+        v = c_velocities{i};
+        h = c_heights{i};
+        h1(:,j) = linspace(0,6.62839742571926,points);
+        v1(:,j) = interp1(h,v,h1(:,j));
+    end
+
+    t_crit = tinv(0.90,3);
+    h_mean = mean(h1,2);
+    v_mean = mean(v1,2);
+
+for k = 1:length(PB_repeat)
+    for j = 1:length(h_mean)
+        s(j,k) = (v_mean(j)-v1(j,k))/(t_crit/sqrt(3));
+    end
+end
+
+points = 200;
+h1 = zeros(points,3);
+v1 = zeros(points,3);
+s2 = zeros(points,3);
+    for j = 1:length(SRA_repeat)
+        i = runs_list(uniqueruns==SRA_repeat(j));
+        v = c_velocities{i};
+        h = c_heights{i};
+        h1(:,j) = linspace(0,6.62839742571926,points);
+        v1(:,j) = interp1(h,v,h1(:,j));
+    end
+
+    t_crit = tinv(0.90,3);
+    h_mean = mean(h1,2);
+    v_mean = mean(v1,2);
+
+for k = 1:length(SRA_repeat)
+    for j = 1:length(h_mean)
+        s2(j,k) = (v_mean(j)-v1(j,k))/(t_crit/sqrt(3));
+    end
+end
+
+
+    %Plot RMS velocity at L3 and downstream of the shocks on the same
+    %plot
+        mean_upstream_vinf = 862.457;
+        figure(26);
+                        i = runs_list(uniqueruns==PB_BL(3));
+                        col = 'm';
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                    hold on;
+                        i = runs_list(uniqueruns==PB_BL(4));
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                        i = runs_list(uniqueruns==PB_BL(5));
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                        i = runs_list(uniqueruns==SRA_BL(4));
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                        i = runs_list(uniqueruns==SRA_BL(5));
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                        i = runs_list(uniqueruns==SRA_BL(6));
+                    plot(c_rms{i}./v_inf(3),c_heights{i},col,'Linewidth',lnw);
+                        xline(0.5,':k');
+                grid on;    
+                xlabel('$V_{RMS} / \bar{V}_{e}$','Interpreter','Latex')
+                set(gca,'FontSize', 15);
+                set(gca,'fontname','times')  % Set it to times
+                xlim([0,0.2]);
+                ylim([0,6]);
+    
+          labels_plot = strings(length(PB_downstm),1);
+            maxheight = 0;
+            for j = 1:length(PB_downstm)
+                i = runs_list(uniqueruns==PB_downstm(j));
+                plot(c_rms{i}./mean_upstream_vinf,c_heights{i},colorlist(j),'Linewidth',2);
+                hold on;
+                downstream_loc_run = downstream_loc(i);
+                spanwise_loc_run = spanwise_loc(i);
+                labels_plot(j) = strcat("Location ",num2str(j+3));
+            end
+            for j = 1:length(PB_downstm)
+                i = runs_list(uniqueruns==PB_downstm(j));
+                color_plot = ['--',colorlist(j)];
+                plot((c_rms{i}-unc_velo_COMBINED{i})./mean_upstream_vinf,c_heights{i},color_plot,'Linewidth',unc_linewidth);
+                plot((c_rms{i}+unc_velo_COMBINED{i})./mean_upstream_vinf,c_heights{i},color_plot,'Linewidth',unc_linewidth);
+                maxheight = max([maxheight,max(c_heights{i})]);
+            end
+        
+
+            labels_plot = ["Location 3";"";"";"";"";"";"";labels_plot];
+            grid on;    
+            xlabel('$V_{RMS} / \bar{V}_{e}^*$','Interpreter','Latex')
+            ylabel('Height above surface [mm]');
+            legend(labels_plot(:));
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+            xlim([0,0.2]);
+            ylim([0,6])
+
+
+
 
