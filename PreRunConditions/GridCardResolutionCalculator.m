@@ -163,6 +163,8 @@ for RUN_LOOP = 1:length(uniqueruns) % loop through different runs
 %         h = gca;
 %         h.Visible = 'On';
 
+
+
         run_rotations = [run_rotations,atand(wallsurffit(1))];
         run_wall_locations= [run_wall_locations,mean(yy_full)];
         run_wall_surf = [run_wall_surf;wallsurffit_full];
@@ -249,6 +251,34 @@ for RUN_LOOP = 1:length(uniqueruns) % loop through different runs
 %             scatter(gridlines_row,gridlines_spacing_row);
 %             legend('Column Sum','Row Sum')
 %     
+%             %paper plotter
+
+            figure(3);
+            subplot(1,2,1);
+            hold off;
+            image(imageData_trim)
+            colormap(bone(round(max(imageData(:)))));
+            axis equal;
+            xlabel('Pixel Columns')
+            ylabel('Pixel Rows')
+            ylim([1,size(imageData_trim,1)])
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+            
+
+
+            subplot(1,2,2);
+            hold off;
+            plot(1:length(rowsum),rowsum,'Linewidth',2);
+            xlim([1,length(rowsum)])
+            hold on;
+            plot(x(TF_row),rowsum(TF_row),'r*');
+            xlabel('Image Pixel Columns')
+            ylabel('Normalized row-averaged intensity')
+            legend(["Intensity","Minima"])
+            set(gca,'FontSize', 15);
+            set(gca,'fontname','times')  % Set it to times
+
         %fitting to get the resolution
         p_col = polyfit(gridlines_col(2:end-1),gridlines_spacing_col(2:end-1),1);
         p_row = polyfit(gridlines_row(2:end-1),gridlines_spacing_row(2:end-1),1);
@@ -271,7 +301,6 @@ for RUN_LOOP = 1:length(uniqueruns) % loop through different runs
             resolutions_unc_run = [resolutions_unc_run,p1_uncertainty_row];
 
         end
-
     end
     pixel_um_resolution(RUN_LOOP,1) = mean(resolutions_run);
 

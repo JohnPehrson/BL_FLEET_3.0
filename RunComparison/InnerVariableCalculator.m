@@ -1,4 +1,4 @@
-function [u_plus_c,u_vd_plus_c,y_plus_c] = InnerVariableCalculator(u,y,Mach,T_inf,P_inf,U_inf)
+function [u_plus_c,u_vd_plus_c,y_plus_c,u_tau_c] = InnerVariableCalculator(u,y,Mach,T_inf,P_inf,U_inf,t_w_clauser)
 %This function calculates the inner variables given a number of inputs to
 %provide Van Driest corrected results. 
 %Assumes adiabatic walls, ideal gas, and measurements close enough to the
@@ -27,10 +27,9 @@ u_vd = (U_inf/a).*asin((a.*u)./U_inf);
 %% Wall viscosities
 rho_w = P_inf./(T_w.*R);
 mu_w = mu_ref.*((T_w/T_ref).^1.5).*((T_ref+S)/(T_w+S));
-v_w = mu_w./rho_w;
+v_w = .9.*mu_w./rho_w;
 
 %% Wall shear stress and u_tau
-    t_w_clauser = 12;
     u_tau_c = sqrt(t_w_clauser/rho_w);
 
 %% Inner Variables
