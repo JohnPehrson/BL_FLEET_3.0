@@ -10,6 +10,9 @@ clear all;close all;clc;
     DAQ_times = cell(length(uniqueruns),1);
     DAQ_Res = cell(length(uniqueruns),1);
     DAQ_Machs = cell(length(uniqueruns),1);
+    DAQ_T0 = cell(length(uniqueruns),1);
+    DAQ_P = cell(length(uniqueruns),1);
+    DAQ_rho = cell(length(uniqueruns),1);
     DAQ_Velos = cell(length(uniqueruns),1);
     DAQ_start_stops = zeros(length(uniqueruns),2);
     DAQ_start_stops(:,2) = [24.4;26.4;24.3;28.1;26.9;...
@@ -21,6 +24,9 @@ clear all;close all;clc;
     Run_Re = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
     Run_Mach = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
     Run_Mean_Velo = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
+    Run_T0 = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
+    Run_P = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
+    Run_rho = zeros(length(uniqueruns),2); %left column is mean, right column is 2 std
 
 
 %only load ACE DAQ in if I haven't before
@@ -51,15 +57,22 @@ savename_DAQ = "DAQ_Reynolds.mat";
                 single_DAQ_Re = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AY2:AY1000');
                 single_DAQ_Mach = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AZ2:AZ1000');
                 single_DAQ_Velos = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AW2:AW1000');
-    
+                single_DAQ_T0 = readmatrix(full_filepath,'Sheet','Reduced Data','Range','J2:J1000');
+                single_DAQ_P = readmatrix(full_filepath,'Sheet','Reduced Data','Range','B2:B1000');
+                single_DAQ_rho = readmatrix(full_filepath,'Sheet','Reduced Data','Range','AV2:AV1000');
+
+
                 %put the single run data into a macro-variable
                 DAQ_times{k} = single_DAQ_time;
                 DAQ_Res{k} = single_DAQ_Re;
                 DAQ_Machs{k} = single_DAQ_Mach;
                 DAQ_Velos{k} = single_DAQ_Velos;
+                DAQ_T0{k} = single_DAQ_T0;
+                DAQ_P{k} = single_DAQ_P;
+                DAQ_rho{k} = single_DAQ_rho;
             end
 
-            save(savename_DAQ,'DAQ_times','DAQ_Res','DAQ_Machs','DAQ_Velos');
+            save(savename_DAQ,'DAQ_times','DAQ_Res','DAQ_Machs','DAQ_Velos','DAQ_T0','DAQ_P','DAQ_rho');
     end %end of the if loop to load in data
 
 %% Finding the steady state start and stop time for the ACE Tunnel
@@ -132,22 +145,44 @@ for i = 1:length(uniqueruns)
     single_Res = DAQ_Res{i};
     single_Machs = DAQ_Machs{i};
     single_Velos = DAQ_Velos{i};
+    single_DAQ_T0  = DAQ_T0{i};
+    single_DAQ_P   = DAQ_P{i};
+    single_DAQ_rho = DAQ_rho{i};
 
     binary_run = (single_times>=DAQ_start_stops(i,1))&(single_times<=DAQ_start_stops(i,2));
     mean_Re = mean(single_Res(binary_run));
     mean_Mach = mean(single_Machs(binary_run));
     mean_Velos = mean(single_Velos(binary_run));
+    mean_T0 = mean(single_DAQ_T0(binary_run));
+    mean_P = mean(single_DAQ_P(binary_run));
+    mean_rho = mean(single_DAQ_rho(binary_run));
 
     doublestd_Re = 2*std(single_Res(binary_run));
     doublestd_Mach = 2*std(single_Machs(binary_run));
     doublestd_Velos = 2*std(single_Velos(binary_run));
+    doublestd_T0 = 2*std(single_DAQ_T0(binary_run));
+    doublestd_P = 2*std(single_DAQ_P(binary_run));
+    doublestd_rho = 2*std(single_DAQ_rho(binary_run));
 
     Run_Re(i,:) = [mean_Re,doublestd_Re];
     Run_Mach(i,:) = [mean_Mach,doublestd_Mach];
     Run_Mean_Velo(i,:) = [mean_Velos,doublestd_Velos];
+    Run_T0(i,:) = [mean_T0,doublestd_T0];
+    Run_P(i,:) = [mean_P,doublestd_P];
+    Run_rho(i,:) = [mean_rho,doublestd_rho];
 end
 
 Run_Re_scaled = Run_Re/(10^6);
+
+density = mean(Run_rho(:,1))
+totalpress = mean(Run_P(:,1))
+totaltemp = mean(Run_T0(:,1))
+Run_Mean_Velo = mean(Run_Mean_Velo(:,1))
+mach = mean(Run_Mach(:,1))
+
+
+
+
 
 %% Plotting individual runs 'steady state' Mach and Reynolds
 for i = 1:length(uniqueruns)
