@@ -1,9 +1,0 @@
-#ignore all mat files
-*.mat
-*\*.mat
-*\*\*.mat
-
-#ignore all asv files
-*.asv
-*\*.asv
-*\*\*.asv
