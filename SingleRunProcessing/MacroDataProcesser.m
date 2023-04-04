@@ -54,7 +54,7 @@ clear all;close all;clc;
                         2000,NaN,4.5,1000,NaN,6;...
                         4096,NaN,6,4096,NaN,6]; %LB,x0,UB
     rotation_angles = rotation_angles+90; %to offset for manually rotating the images when taking scaling shots
-    freestream_est = 875/(1.05); %m/s, for bounding gates
+    freestream_est_fitting = 875/(1.05); %m/s, for bounding gates
     flare_constants = [ 0,0.25,0;... 
                         0,0.15,6;...
                         0,.6,25;...
@@ -68,7 +68,7 @@ clear all;close all;clc;
                         4,0.25,0;...%5492
                         2,0.5,0;...%5493
                         0,0.05,0;...%5494
-                        2,0.15,10];  %first column is moving down, second column is amplitude scale
+                        2,0.1,5];  %first column is moving down, second column is amplitude scale
     g1_scale_constants = [0.15,0.9;...
                         0.15,0.6;...
                         0.0,.6;...
@@ -142,13 +142,13 @@ for run_loop = run_stepper(binary_proc_runs)
         synth_numimages = 500;
         
         if synth_switch
-            f = fullfile('ProcessedData',['FullData_Run',num2str(run_loop),'*']);
+            f = fullfile('ProcessedData',['FullData_Run',num2str(run_loop),'_*']);
             fstruct = dir(f);
             synth_real_replicate = fullfile('ProcessedData',fstruct.name);
             total_im_process = synth_numimages;
     
             [synthfilepath,run_start_end_synth,nondim_velo_error,synth_input_tau_fit,...
-                synth_input_velocity_mean] = Synthetic_Data_Gen(Run_Conditions_filepath,...
+                synth_input_velocity_mean,decay_error_eq] = Synthetic_Data_Gen(Run_Conditions_filepath,...
              Resolution_filepath,run_loop,synth_real_replicate,synth_numimages,ROI,fitting_limits);
             run_start_end = run_start_end_synth(run_loop,:);
         else
@@ -158,6 +158,7 @@ for run_loop = run_stepper(binary_proc_runs)
             synth_input_tau_fit = 0;
             synth_input_velocity_mean = 0;
             synth_real_replicate = 0;
+            decay_error_eq = 0;
         end
 
     %% Image processing (if I need to do it)
@@ -167,10 +168,10 @@ for run_loop = run_stepper(binary_proc_runs)
         data_processing_filepath = ['ProcessedData/ProcessedSynthData_Run',num2str(run_loop),'Imcount_',num2str(total_im_process),'.mat'];
         end
         
-        if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
-                load(data_processing_filepath);
-                num_ims_runs(run_loop) = numimages;
-            else % Bounds don't already exist, compute them
+%         if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
+%                 load(data_processing_filepath);
+%                 num_ims_runs(run_loop) = numimages;
+%             else % Bounds don't already exist, compute them
             %% Preprocessing (getting mean data, image bounding/ROI, filtering, fitting bounding)
                 [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
                 gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,...
@@ -182,7 +183,7 @@ for run_loop = run_stepper(binary_proc_runs)
                 run_filepaths(run_loop,:),run_start_end,run_start_end_prerun_flare,...
                 ROI,fitting_limits,synthfilepath,synth_switch,synth_numimages,total_im_process,total_im_preprocess,...
                 CFD_turbulent_profile_filepath,synth_real_replicate,rot_angle,resolution,Gates(run_loop,:),Delays(run_loop,:),...
-                lam_run_binary,single_run,top_offset,freestream_est,cross_shock_run_binary,flare_scale,near_wall_g1_scale,...
+                lam_run_binary,single_run,top_offset,freestream_est_fitting,cross_shock_run_binary,flare_scale,near_wall_g1_scale,...
                 prerun_flare_binary,...
                 rerun_switch,rerun_savename,both_const_mod); %variables for rerunning the same data with different near-wall fitting parameters
 
@@ -202,7 +203,7 @@ for run_loop = run_stepper(binary_proc_runs)
             num_ims_runs(run_loop) = numimages;
 
 
-        end
+%         end
 
     %% Postprocessing (filtering and calculating time-averaged velocimetry data)
     [velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
@@ -229,6 +230,7 @@ for run_loop = run_stepper(binary_proc_runs)
         synthfilepath,synth_switch,nondim_velo_error,...
         synth_input_tau_fit,synth_input_velocity_mean,...
         zero_height_ref_unc,sufficient_counter,...
-        background_totalfit,filt_centroids,filt_velocity);
-
+        background_totalfit,filt_centroids,filt_velocity,...
+        decay_error_eq);
+close all;
 end

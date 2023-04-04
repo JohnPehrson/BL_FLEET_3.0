@@ -40,7 +40,10 @@ if synth_switch
         %save data for next time
         ROI_imagedata_flare = zeros(size(ROI_imagedata));
         numprelim_images_flare = total_im_preprocess;
-        save(savename,'ROI_imagedata','numprelim_images_flare','ROI_imagedata_flare');
+        threshs_flare = [0,10^12];
+        threshs = [0,10^12];
+        save(savename,'ROI_imagedata','numprelim_images_flare','ROI_imagedata_flare','threshs_flare','threshs');
+        threshs_flare = [0,10^12];
     end
 
 else  %real data
@@ -133,13 +136,21 @@ end
 %% Image registration with preprocessing data
 xlength = length(ROI(1):ROI(2));
 ylength = length(ROI(3):ROI(4));
-im_reg_savename = ['Preprocessing_Filestorage\PreprocessingImageReg',num2str(run),'_RunImages_',num2str(numprelim_images),'_PreImages_',num2str(numprelim_images_flare),'.mat'];
+if ~synth_switch %real data
+    im_reg_savename = ['Preprocessing_Filestorage\PreprocessingImageReg',num2str(run),'_RunImages_',num2str(numprelim_images),'_PreImages_',num2str(numprelim_images_flare),'.mat'];
+else
+    im_reg_savename = ['Preprocessing_Filestorage\PreprocessingSynthImageReg',num2str(run),'_RunImages_',num2str(numprelim_images),'_PreImages_',num2str(numprelim_images_flare),'.mat'];
+end
 
 if isfile(im_reg_savename) %if it has been done before, don't redo it, just load it
     load(im_reg_savename);
 else
     [ROI_imagedata] = Preprocessing_Image_Registrar(ROI_imagedata,xlength,ylength);
+    if ~synth_switch %real data
     [ROI_imagedata_flare] = Preprocessing_Image_Registrar(ROI_imagedata_flare,xlength,ylength);
+    else
+        %don't register, no flare
+    end
     save(im_reg_savename,'ROI_imagedata','ROI_imagedata_flare');
 end
 
@@ -164,11 +175,10 @@ if synth_switch
 load(synth_real_replicate,'emissionlocatingdata')
 end
 
-
         %% Preliminaty fitting (background, local, gates) and fitting bounds
         [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,cutoff_height_pixels,...
             nearwall_bounds,background_totalfit,amplitudes,doublegauss_fitvariables,near_wall_extrap,...
-            centroids,snr,centroid_error,y_mm,gb1,gb2,flare_height_mm] = PrelimFitting(run,...
+            centroids,snr,centroid_error,y_mm,x_mm,gb1,gb2,flare_height_mm] = PrelimFitting(run,...
             imageData_mean,prerunData_mean,xlength,ylength,resolution(1),g1_location_col,ROI,...
             numprelim_images,emissionlocatingdata,fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,...
             lam_run_binary,single_run,freestream_est,cross_shock_run_binary,flare_scale(1,:),near_wall_g1_scale(1,:),...
@@ -181,9 +191,31 @@ end
             background_totalfit,amplitudes);
         
         %% Saving out time-averaged stuff
-        save_centroid_fit = ['ProcessedData/Time_Average_Fit_',convertStringsToChars(rerun_savename(1)),'_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
-          save(save_centroid_fit,'run','centroids','snr','centroid_error','numprelim_images','y_mm','gb1','gb2','tau_fit','zero_height_ref_unc','flare_height_mm');
+        if ~synth_switch %real data
+            save_centroid_fit = ['ProcessedData/Time_Average_Fit_',convertStringsToChars(rerun_savename(1)),'_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
+        else
+            save_centroid_fit = ['ProcessedData/Time_Average_Synth_Fit_',convertStringsToChars(rerun_savename(1)),'_Run',num2str(run),'_',num2str(numprelim_images),'images.mat'];
+        end
+        save(save_centroid_fit,'run','centroids','snr','centroid_error','numprelim_images','y_mm','gb1','gb2','tau_fit','zero_height_ref_unc','flare_height_mm');
     
+        close all;
+        if run==13
+        %make sure i have everything I need to replicate the image
+            figure;
+            image(x_mm,y_mm,imageData_mean);
+            set(gca,'YDir','normal');
+            colorbar;
+            colormap(jet(round(max(imageData_mean(:)))));
+            xlabel('Streamwise Distance [mm]')
+            ylabel('Height above Surface [mm]')
+            title(['Time-Average FLEET, Run ',num2str(single_run)])
+            grid on;
+
+            savename = "Scitech_Pictures/Time_Average_Emissions.mat";
+            save(savename,'x_mm','y_mm','run','centroids','gb1','gb2','imageData_mean');
+
+        end
+
         close all;
     
 end

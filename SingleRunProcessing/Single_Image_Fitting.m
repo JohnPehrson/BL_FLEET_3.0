@@ -46,8 +46,6 @@ fitvariables(:,2) = c1_line;
             Gates,resolution,wall_yloc,run,snr,rows,centroid_error,cfd_turb_prof,synth_switch,near_wall_g1_scale); %provides the extrapolated g1 variables for the set of points contained by the nearwall_bounds
         centroids(:,1) = centroids_g1;
 
-
-
 %% Plotting the image with the fit and extrapolated fit to g1 subtracted. This gives only the data that is being fit for the second gate
 cols_list = 1:size(bkg_subtracted_imageData_ROI,2);
 rows_list = 1:size(bkg_subtracted_imageData_ROI,1);

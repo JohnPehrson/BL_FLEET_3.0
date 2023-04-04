@@ -23,7 +23,7 @@ red_move_ROI_ud = []; %correction in pixels
 
     %% Parallel processing
     WaitMessage = parfor_wait(length(imageprocess_numbers), 'Waitbar', true);
-    parfor imloop = 1:length(imageprocess_numbers)
+    for imloop = 1:length(imageprocess_numbers)
         
         %Initializing temporary variables
         %just used locally
@@ -54,10 +54,12 @@ red_move_ROI_ud = []; %correction in pixels
             [noise] = NoiseCalculator(imageData_ROI);
 
             %Filter image and subtract background
-            imageData_ROI(imageData_ROI<dust_filter_bounds_bottom) = imageData_mean(imageData_ROI<dust_filter_bounds_bottom);
-            imageData_ROI(imageData_ROI>dust_filter_bounds_top) = imageData_mean(imageData_ROI>dust_filter_bounds_top);
+            if ~synth_switch
+%             imageData_ROI(imageData_ROI<dust_filter_bounds_bottom) = imageData_mean(imageData_ROI<dust_filter_bounds_bottom);
+%             imageData_ROI(imageData_ROI>dust_filter_bounds_top) = imageData_mean(imageData_ROI>dust_filter_bounds_top);
             imageData_ROI = imageData_ROI-background_totalfit;
             imageData_ROI(imageData_ROI<0) = 0;
+            end
     
             %Process image
             [temp_centroids,temp_velocity,temp_velocity_r,temp_velocity_s,...

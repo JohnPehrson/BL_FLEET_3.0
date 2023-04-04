@@ -2060,6 +2060,7 @@ subplot(1,3,3); %RMS, 370 mm
         maxheight = 0;
         figure(27);
         subplot(1,2,1);
+        cols_repeat = [1, 0, 0; 0, 0, 1; 1, 0, 1];
         for j = 1:length(both_repeat)
             if  ismember(both_repeat(j),PB_repeat) %pizza box
                 c = 2;
@@ -2067,7 +2068,7 @@ subplot(1,3,3); %RMS, 370 mm
                 c = 1;
             end
             i = runs_list(uniqueruns==both_repeat(j));
-            plot(c_velocities{i},c_heights{i},'m','Linewidth',2);
+            plot(c_velocities{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','-','Linewidth',3);
             hold on;
             maxheight = max([maxheight,max(c_heights{i})]);
         end
@@ -2078,9 +2079,8 @@ subplot(1,3,3); %RMS, 370 mm
             else
                 c = 1;
             end
-            color_plot = ['--',colorlist(c)];
-            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},':m','Linewidth',1);
-            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},':m','Linewidth',1);
+            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
         end
         plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
 
@@ -2092,10 +2092,95 @@ subplot(1,3,3); %RMS, 370 mm
         xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
         ylabel('Height above surface [mm]');
         legend(labels_plot(:));
-        set(gca,'FontSize', 15);
+        set(gca,'FontSize', 20);
         set(gca,'fontname','times')  % Set it to times
         xlim([0,900]);
         ylim([0,10])
+        hold on;
+
+        subplot(1,2,2);
+        both_repeat = [SRA_repeat(:)]; %3,1
+        maxheight = 0;
+        for j = 1:length(both_repeat)
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            i = runs_list(uniqueruns==both_repeat(j));
+            plot(c_velocities{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','-','Linewidth',3);
+            hold on;
+            maxheight = max([maxheight,max(c_heights{i})]);
+        end
+        for j = 1:length(both_repeat)
+            i = runs_list(uniqueruns==both_repeat(j));
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            color_plot = ['--',colorlist(c)];
+            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+        end
+        plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
+
+        clear labels_plot
+        labels_plot = ["SRA FLEET","","","95% CI","","","","","","RANS CFD"];
+    
+        grid on;    
+%             title('Pizza Box vs Synthetic Roughness');
+        xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
+        ylabel('Height above surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 20);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,900]);
+        ylim([0,10])
+        hold on;
+
+%SRA vs PB at Location 3 (RMS)
+        both_repeat = [PB_repeat(:)]; %3,1
+        maxheight = 0;
+        figure(32);
+        im_height = 10;
+        subplot(1,2,1);
+        for j = 1:length(both_repeat)
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            i = runs_list(uniqueruns==both_repeat(j));
+            plot(c_rms{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','-','Linewidth',3);
+            hold on;
+            maxheight = max([maxheight,max(c_heights{i})]);
+        end
+        for j = 1:length(both_repeat)
+            i = runs_list(uniqueruns==both_repeat(j));
+            if  ismember(both_repeat(j),PB_repeat) %pizza box
+                c = 2;
+            else
+                c = 1;
+            end
+            color_plot = ['--',colorlist(c)];
+            plot(c_rms{i}./v_inf(3)+unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+            plot(c_rms{i}./v_inf(3)-unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+        end
+        plot(DNS_RMS./max(DNS_V),DNS_h,'-k','Linewidth',2)
+
+        clear labels_plot
+        labels_plot = ["PB FLEET","","","95% CI","","","","","","*DNS CFD*"];
+    
+        grid on;    
+%             title('Pizza Box vs Synthetic Roughness');
+        xlabel('$V_{RMS}/V_e$','Interpreter','Latex')
+        ylabel('Height above surface [mm]');
+        legend(labels_plot(:));
+        set(gca,'FontSize', 20);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0,.25]);
+        ylim([0,im_height])
         hold on;
 
          both_repeat = [SRA_repeat(:)]; %3,1
@@ -2108,7 +2193,7 @@ subplot(1,3,3); %RMS, 370 mm
                 c = 1;
             end
             i = runs_list(uniqueruns==both_repeat(j));
-            plot(c_velocities{i},c_heights{i},'b','Linewidth',2);
+            plot(c_rms{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','-','Linewidth',3);
             hold on;
             maxheight = max([maxheight,max(c_heights{i})]);
         end
@@ -2120,95 +2205,10 @@ subplot(1,3,3); %RMS, 370 mm
                 c = 1;
             end
             color_plot = ['--',colorlist(c)];
-            plot(c_velocities{i}-unc_velo_COMBINED{i},c_heights{i},':b','Linewidth',1);
-            plot(c_velocities{i}+unc_velo_COMBINED{i},c_heights{i},':b','Linewidth',1);
+            plot(c_rms{i}./v_inf(3)+unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
+            plot(c_rms{i}./v_inf(3)-unc_rms_COMBINED{i}./v_inf(3),c_heights{i},'Color', cols_repeat(j,:), 'LineStyle','--','Linewidth',2);
         end
-        plot(aw.u(:,3),aw.h(:,3),cfd_colorlist(1),'Linewidth',2);
-
-        clear labels_plot
-        labels_plot = ["SRA FLEET","","","95% CI","","","","","","RANS CFD"];
-    
-        grid on;    
-%             title('Pizza Box vs Synthetic Roughness');
-        xlabel('$\bar{V}$ [m/s]','Interpreter','Latex')
-        ylabel('Height above surface [mm]');
-        legend(labels_plot(:));
-        set(gca,'FontSize', 15);
-        set(gca,'fontname','times')  % Set it to times
-        xlim([0,900]);
-        ylim([0,10])
-        hold on;
-
-%SRA vs PB at Location 3 (RMS)
-        both_repeat = [PB_repeat(:)]; %3,1
-        maxheight = 0;
-        figure(32);
-        im_height = 10;
-        subplot(1,3,1);
-        for j = 1:length(both_repeat)
-            if  ismember(both_repeat(j),PB_repeat) %pizza box
-                c = 2;
-            else
-                c = 1;
-            end
-            i = runs_list(uniqueruns==both_repeat(j));
-            plot(c_rms{i}./v_inf(3),c_heights{i},'m','Linewidth',lnw);
-            hold on;
-            maxheight = max([maxheight,max(c_heights{i})]);
-        end
-        for j = 1:length(both_repeat)
-            i = runs_list(uniqueruns==both_repeat(j));
-            if  ismember(both_repeat(j),PB_repeat) %pizza box
-                c = 2;
-            else
-                c = 1;
-            end
-            color_plot = ['--',colorlist(c)];
-            plot(c_rms{i}./v_inf(3)+unc_rms_COMBINED{i}./v_inf(3),c_heights{i},':m','Linewidth',1);
-            plot(c_rms{i}./v_inf(3)-unc_rms_COMBINED{i}./v_inf(3),c_heights{i},':m','Linewidth',1);
-        end
-        plot(DNS_RMS./max(DNS_V),DNS_h,'--k','Linewidth',lnw)
-
-        clear labels_plot
-        labels_plot = ["PB FLEET","","","95% CI","","","","","","*DNS CFD*"];
-    
-        grid on;    
-%             title('Pizza Box vs Synthetic Roughness');
-        xlabel('$V_{RMS}/V_e$','Interpreter','Latex')
-        ylabel('Height above surface [mm]');
-        legend(labels_plot(:));
-        set(gca,'FontSize', 15);
-        set(gca,'fontname','times')  % Set it to times
-        xlim([0,.25]);
-        ylim([0,im_height])
-        hold on;
-
-         both_repeat = [SRA_repeat(:)]; %3,1
-        maxheight = 0;
-        subplot(1,3,2);
-        for j = 1:length(both_repeat)
-            if  ismember(both_repeat(j),PB_repeat) %pizza box
-                c = 2;
-            else
-                c = 1;
-            end
-            i = runs_list(uniqueruns==both_repeat(j));
-            plot(c_rms{i}./v_inf(3),c_heights{i},'b','Linewidth',1.5);
-            hold on;
-            maxheight = max([maxheight,max(c_heights{i})]);
-        end
-        for j = 1:length(both_repeat)
-            i = runs_list(uniqueruns==both_repeat(j));
-            if  ismember(both_repeat(j),PB_repeat) %pizza box
-                c = 2;
-            else
-                c = 1;
-            end
-            color_plot = ['--',colorlist(c)];
-            plot(c_rms{i}./v_inf(3)+unc_rms_COMBINED{i}./v_inf(3),c_heights{i},':b','Linewidth',1);
-            plot(c_rms{i}./v_inf(3)-unc_rms_COMBINED{i}./v_inf(3),c_heights{i},':b','Linewidth',1);
-        end
-        plot(DNS_RMS./max(DNS_V),DNS_h,'--k','Linewidth',lnw)
+        plot(DNS_RMS./max(DNS_V),DNS_h,'-k','Linewidth',2)
 
         clear labels_plot
         labels_plot = ["SRA FLEET","","","95% CI","","","","","","*DNS CFD*"];
@@ -2218,44 +2218,44 @@ subplot(1,3,3); %RMS, 370 mm
         xlabel('$V_{RMS}/V_e$','Interpreter','Latex')
         ylabel('Height above surface [mm]');
         legend(labels_plot(:));
-        set(gca,'FontSize', 15);
+        set(gca,'FontSize', 20);
         set(gca,'fontname','times')  % Set it to times
         xlim([0,0.25]);
         ylim([0,im_height])
         hold on;
-
-    both_repeat = [PB_repeat(:);SRA_repeat(:)]; 
-    subplot(1,3,3);
-    for j = 1:length(both_repeat)
-            if  ismember(both_repeat(j),PB_repeat) %pizza box
-                colp = 'm';
-            else
-                colp = 'b';
-            end
-            i = runs_list(uniqueruns==both_repeat(j));
-
-            mean_SNR_binary = (c_heights{i}<3)&(c_heights{i}>.5);
-            dat_snr = c_SNRs{i};
-            mean_im_snr = mean(dat_snr(mean_SNR_binary));
-            if i==1
-            colp = strcat('--',colp);
-            plot(c_SNRs{i}./mean_im_snr,c_heights{i},colp,'Linewidth',1.5);
-            else
-            plot(c_SNRs{i}./mean_im_snr,c_heights{i},colp,'Linewidth',1.5);
-            end
-            hold on;
-            maxheight = max([maxheight,max(c_heights{i})]);
-    end
-
-        grid on;    
-        xlabel('$SNR/SNR_{max}$','Interpreter','Latex')
-        ylabel('Height above surface [mm]');
-        set(gca,'FontSize', 15);
-        set(gca,'fontname','times')  % Set it to times
-        xlim([0,2]);
-        ylim([0,im_height])
-        legend("PB, 500 mm Lens","","","SRA, 750 mm Lens","SRA, 500 mm Lens")
-        hold on;
+% 
+%     both_repeat = [PB_repeat(:);SRA_repeat(:)]; 
+%     subplot(1,3,3);
+%     for j = 1:length(both_repeat)
+%             if  ismember(both_repeat(j),PB_repeat) %pizza box
+%                 colp = 'm';
+%             else
+%                 colp = 'b';
+%             end
+%             i = runs_list(uniqueruns==both_repeat(j));
+% 
+%             mean_SNR_binary = (c_heights{i}<3)&(c_heights{i}>.5);
+%             dat_snr = c_SNRs{i};
+%             mean_im_snr = mean(dat_snr(mean_SNR_binary));
+%             if i==1
+%             colp = strcat('--',colp);
+%             plot(c_SNRs{i}./mean_im_snr,c_heights{i},colp,'Linewidth',1.5);
+%             else
+%             plot(c_SNRs{i}./mean_im_snr,c_heights{i},colp,'Linewidth',1.5);
+%             end
+%             hold on;
+%             maxheight = max([maxheight,max(c_heights{i})]);
+%     end
+% 
+%         grid on;    
+%         xlabel('$SNR/SNR_{max}$','Interpreter','Latex')
+%         ylabel('Height above surface [mm]');
+%         set(gca,'FontSize', 15);
+%         set(gca,'fontname','times')  % Set it to times
+%         xlim([0,2]);
+%         ylim([0,im_height])
+%         legend("PB, 500 mm Lens","","","SRA, 750 mm Lens","SRA, 500 mm Lens")
+%         hold on;
 
 
 % 
@@ -2422,16 +2422,34 @@ SRA_repeats = runs_list(idx>0);
         semilogx(y_p_vd_PB1,u_p_vd_PB1,'m','Linewidth',2);
         semilogx(y_p_vd_PB2,u_p_vd_PB2,'m','Linewidth',2);
         semilogx(y_p_vd_PB3,u_p_vd_PB3,'m','Linewidth',2);
+        %bounds
+        semilogx(y_p_vd_PB_ub,u_p_vd_PB_ub,'--m','Linewidth',1);
+        semilogx(y_p_vd_PB_lb,u_p_vd_PB_lb,'--m','Linewidth',1); 
+
+        legend('Logarithmic Law of the Wall (0.41,5)','Viscous Sublayer','RANS CFD','PB')
+        set(gca,'FontSize', 20);
+        set(gca,'fontname','times')  % Set it to times
+        xlim([0.4,200])
+        ylim([0,20])
+        grid on;
+        xlabel('$y^+$','Interpreter','Latex')
+        ylabel('$u_{VD}^+$','Interpreter','Latex')
+
+      %plotting innver variable cfd
+        figure;
+        semilogx(y_ideal,u_ideal,'k','Linewidth',2);
+        hold on;
+        semilogx(y_visc,u_visc,'--k','Linewidth',2);
+        semilogx(y_plus_c,u_vd_plus_c,'r','Linewidth',2);
+%         semilogx(DNS_yplus,DNS_uplus,'g','Linewidth',2);
         semilogx(y_p_vd_SRA1,u_p_vd_SRA1,'b','Linewidth',2);
         semilogx(y_p_vd_SRA2,u_p_vd_SRA2,'b','Linewidth',2);
         semilogx(y_p_vd_SRA3,u_p_vd_SRA3,'b','Linewidth',2);
         %bounds
-        semilogx(y_p_vd_PB_ub,u_p_vd_PB_ub,'--m','Linewidth',1);
-        semilogx(y_p_vd_PB_lb,u_p_vd_PB_lb,'--m','Linewidth',1);
         semilogx(y_p_vd_SRA_ub,u_p_vd_SRA_ub,'--b','Linewidth',1);
         semilogx(y_p_vd_SRA_lb,u_p_vd_SRA_lb,'--b','Linewidth',1);
 
-        legend('Logarithmic Law of the Wall (0.41,5)','Viscous Sublayer','RANS CFD','PB','','','SRA')
+        legend('Logarithmic Law of the Wall (0.41,5)','Viscous Sublayer','RANS CFD','SRA')
         set(gca,'FontSize', 20);
         set(gca,'fontname','times')  % Set it to times
         xlim([0.4,200])

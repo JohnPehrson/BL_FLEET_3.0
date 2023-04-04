@@ -8,21 +8,22 @@ function [mean_velocity,mean_velocity_r,mean_velocity_s,rms_velocity,rms_velocit
 %This function postprocesses the fit data. This is broadly devided into
 %filtering and calculating time-averaged velocimetry (mean and rms)
 
-% %% Subfunction to visualize the quality of the fit before filtering
+%% Subfunction to visualize the quality of the fit before filtering
 % [P_vec,h_vec,mean_rms_centroids] = Statistical_Analysis_TimeAccurate(red_centroids,red_g2SNR,y_mm,gate1_location_bounds,gate2_location_bounds,imageData_mean,0);
-% 
-% %% Velocity histogram
+
+%% Velocity histogram
 % VelocityBoxPlots(red_velocity,emissionlocatingdata)
 
 row_mm = y_mm;
 %% Filtering the raw fit data
+ 
 [filt_centroids,filt_velocity,filt_velocity_s,filt_velocity_r,...
     filt_g2SNR,images_percentage_passed_filtering,filt_binary_master] = Filtering(red_centroids,...
     red_velocity,red_velocity_s, red_velocity_r,red_g2SNR,...
     gate1_location_bounds,gate2_location_bounds,synth_switch,row_mm);
 
-% %use same subfunction after fiiltering to see how much filtering improved
-% %the data (normality, outleirs, etc.)
+%use same subfunction after fiiltering to see how much filtering improved
+%the data (normality, outleirs, etc.)
 % [P_vec,h_vec,~] = Statistical_Analysis_TimeAccurate(filt_centroids,filt_g2SNR,y_mm,gate1_location_bounds,gate2_location_bounds,imageData_mean,0);
 
 %     %% Velocity histogram
@@ -32,5 +33,29 @@ row_mm = y_mm;
  [mean_velocity,rms_velocity,mean_velocity_r,mean_velocity_s,rms_velocity_r,rms_velocity_s,...
     mean_SNR,sufficient_counter] = Mean_RMS_Velo_Calculator(filt_velocity,filt_velocity_r,filt_velocity_s,...
     filt_g2SNR,invar_image_compare,filt_binary_master,emissionlocatingdata);
+
+
+%     rows_ims = 1:size(imageData_mean,1);
+%     unfilt_snr_mean = mean(red_g2SNR,2);
+%     
+%     fig = figure;
+%     left_color = [0 0 0];
+%     right_color = [0 0 0];
+%     set(fig,'defaultAxesColorOrder',[left_color; right_color]);
+%     yyaxis left
+%     plot(unfilt_snr_mean,row_mm,'r','Linewidth',2);
+%     grid on;
+%     ylim([min(row_mm),max(row_mm)]);
+%     ylabel('Height above surface [mm]');
+% 
+% 
+%     yyaxis right
+%     plot(unfilt_snr_mean,rows_ims,'r','Linewidth',2);
+%     set(gca, 'YDir','reverse')
+%     ylim([0,max(rows_ims)]);
+%     xlabel('SNR [-]');
+%     ylabel('Image Row');
+%     set(gca,'FontSize', 20);
+%     set(gca,'fontname','times')  % Set it to times
 
 end

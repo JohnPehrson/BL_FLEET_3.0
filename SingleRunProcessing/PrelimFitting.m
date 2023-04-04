@@ -1,6 +1,6 @@
 function [gate1_location_bounds,gate2_location_bounds,time_averaged_fit,g1_fitline_above,...
     nearwall_bounds,background_totalfit,amplitudes,double_gauss_fitvariables,near_wall_extrap,...
-    centroids,snr,centroid_error,y_mm,gb1,gb2,flare_height_mm] = PrelimFitting(run,...
+    centroids,snr,centroid_error,y_mm,sw_dist,gb1,gb2,flare_height_mm] = PrelimFitting(run,...
     imageData_mean,prerunData_mean,ypix,xpix,resolution,g1_location_col,ROI,numprelim_images,emissionlocatingdata,...
     fitting_limits,synth_switch,Delays,Gates,cfd_turb_prof,lam_run_binary,single_run,freestream_est,...
     cross_shock_run_binary,flare_scale,near_wall_g1_scale,create_prerun_flare_dataset,rerun_label)
@@ -61,7 +61,7 @@ g1_fitline_above = round(surface_height-g1_thresh);
 
 %Getting the bounds as a function of height using the freestream values,
 %widths, and the gate locations
-g1_half_width = 6;
+g1_half_width = 7;
 g2_half_width = 13;
 [gate1_location_bounds,gate2_location_bounds] = widthbound_fy(run,ypix,freestream_gate_loc(1),...
     freestream_gate_loc(2),cutoff_height_switchover,g1_half_width,g2_half_width,lam_run_binary);
@@ -70,7 +70,7 @@ g2_half_width = 13;
 [background_totalfit] = BackgroundFitter(run,imageData_mean,ypix,xpix,numprelim_images,synth_switch);
 
 %plotting the fitting bounds over the image
-    linwidth = 1;
+    linwidth = 2.5;
     sw_dist = ((1:xpix)-freestream_gate_loc(1)).*scale*1000; %mm
     vt_dist = -1*((1:ypix)-surface_height).*scale*1000; %mm
     sw_dist = sw_dist';
@@ -83,20 +83,24 @@ g2_half_width = 13;
     image(sw_dist,vt_dist,imageData_mean);
     set(gca,'YDir','normal');
     colorbar;
-    colormap(jet(round(max(imageData_mean(:)))));
+    colormap(turbo(round(max(imageData_mean(:)))));
     hold on;
-    plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
-    plot(g1l(:,1),vt_dist,'r','Linewidth',linwidth);
-    plot(g1l(:,3),vt_dist,'r','Linewidth',linwidth);
-    plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
-    plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
-    plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
+%     plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g1l(:,1),vt_dist,'--r','Linewidth',linwidth);
+%     plot(g1l(:,3),vt_dist,'--r','Linewidth',linwidth);
+%     plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
+% %     plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
     xlabel('Streamwise Distance [mm]')
     ylabel('Vertical Distance [mm]')
-    title(['Fitting Bounds for Run',num2str(single_run)])
+%     title(['Fitting Bounds for Run',num2str(single_run)])
     grid on;
-    legend('Estimated Gate Location','Gate Bounds')
-
+%     legend(["$g_1$ Bounds","","$g_2$ Bounds"],'Interpreter','Latex')
+    set(gca,'FontSize', 18);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([-2,2]);
+    ylim([-0.8,2]);
+    axis equal;
 
 %% Fitting the flare and providing a subtraction data set for near wall velocimetry
 imageData_mean_nobackground = imageData_mean-background_totalfit;
@@ -109,25 +113,32 @@ ypix,xpix,gate1_location_bounds,gate2_location_bounds,fitting_limits,run,numprel
 resolution,Delays,Gates,cfd_turb_prof,sw_dist,vt_dist,single_run,flare_scale,near_wall_g1_scale,...
 create_prerun_flare_dataset,rerun_label);
 
+
+
 time_averaged_fit = background_totalfit+flare_g1_fit;
 mean_background_subt = imageData_mean-time_averaged_fit;
-%     %plotting
-%     figure;
-%     image(mean_background_subt)
-%     colorbar;
-%     colormap(jet(round(max(mean_background_subt(:)))));
-%     hold on;
-%     plot(gate1_location_bounds(:,1),1:ypix,'r');
-%     hold on
-%     plot(gate1_location_bounds(:,2),1:ypix,'b');
-%     hold on;
-%     plot(gate1_location_bounds(:,3),1:ypix,'r');
-%     hold on;
-%     plot(gate2_location_bounds(:,1),1:ypix,'r');
-%     hold on
-%     plot(gate2_location_bounds(:,2),1:ypix,'b');
-%     hold on;
-%     plot(gate2_location_bounds(:,3),1:ypix,'r');
+    figure;
+    image(sw_dist,vt_dist,mean_background_subt);
+    set(gca,'YDir','normal');
+    colorbar;
+    colormap(turbo(round(max(mean_background_subt(:)))));
+    hold on;
+% %     plot(g1l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g1l(:,1),vt_dist,'--r','Linewidth',linwidth);
+%     plot(g1l(:,3),vt_dist,'--r','Linewidth',linwidth);
+%     plot(g2l(:,1),vt_dist,'r','Linewidth',linwidth);
+% %     plot(g2l(:,2),vt_dist,'k','Linewidth',linwidth);
+%     plot(g2l(:,3),vt_dist,'r','Linewidth',linwidth);
+    xlabel('Streamwise Distance [mm]')
+    ylabel('Vertical Distance [mm]')
+%     title(['Fitting Bounds for Run',num2str(single_run),' flare subtracted'])
+    grid on;
+%     legend(["$g_1$ Bounds","","$g_2$ Bounds"],'Interpreter','Latex')
+    set(gca,'FontSize', 18);
+    set(gca,'fontname','times')  % Set it to times
+    xlim([-2,2]);
+    ylim([-0.8,2]);
+    axis equal;
 
 end
 

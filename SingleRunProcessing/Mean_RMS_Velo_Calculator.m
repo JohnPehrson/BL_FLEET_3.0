@@ -31,10 +31,10 @@ sufficient_counter = rows_ind(test2);
     for i = sufficient_counter
         N = sum(filt_binary_master(i,:));
         mean_velocity_r(i) = sqrt(sum((inst_velo_r(i,filt_binary_master(i,:)).^2)/(N^2)));
-        mean_velocity_s(i) = mean(inst_velo_s(i,filt_binary_master(i,:)));
+        mean_velocity_s(i) = sqrt(sum(inst_velo_s(i,filt_binary_master(i,:)).^2)/N);
     end
     
-    % %Time-based spanwise averaged Velocity and centroid locations
+    % %Time-based velocity and centroid locations
     %     numimages = size(proc_velocity,1);
     %     timeaveraged_velocity = zeros(1,numimages);
     %     centroid_1 = zeros(1,numimages);
@@ -64,11 +64,9 @@ sufficient_counter = rows_ind(test2);
     
     for i = sufficient_counter
         N = sum(filt_binary_master(i,:));
-
-        rms_velocity_r(i) = std(deviation_velocity_uncertainty_random(i,filt_binary_master(i,:)));
-%         rms_velocity_r(i) = (1/N^2)*sqrt(4*sum((deviation_velocity(i,filt_binary_master(i,:)).^2).*(deviation_velocity_uncertainty_random(i,filt_binary_master(i,:)).^2)));
-%         rms_velocity_s(i) = (1/N)*sqrt(4*sum((deviation_velocity(i,filt_binary_master(i,:)).^2).*(deviation_velocity_uncertainty_systematic(i,filt_binary_master(i,:)).^2)));
-        rms_velocity_s(i) = mean(deviation_velocity_uncertainty_systematic(i,filt_binary_master(i,:)));
+% Thesis version
+    rms_velocity_r(i) = sqrt((N).*((1/(N*rms_velocity(i))).^2).*sum((deviation_velocity(i,filt_binary_master(i,:)).^2).*(deviation_velocity_uncertainty_random(i,filt_binary_master(i,:)).^2)));
+    rms_velocity_s(i) = sqrt((N).*((1/(N*rms_velocity(i))).^2).*sum((deviation_velocity(i,filt_binary_master(i,:)).^2).*(deviation_velocity_uncertainty_systematic(i,filt_binary_master(i,:)).^2)));
     end
     
     %% R2 and signal and snr

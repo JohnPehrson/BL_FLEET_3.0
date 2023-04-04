@@ -102,21 +102,59 @@ for j = 1:count_rows
     ideal_image(j,:) = sum(gauss_timeindep,1); %superposition
     gate1_trimmed(j,:) = sum(gauss_timeindep(1:Gates(1),:),1); %superposition
     gate2_trimmed(j,:) = sum(gauss_timeindep((Gates(1)+1):end,:),1); %superposition
+
+
+    G1_timeindep = gauss_timeindep(1:Gates(1),:);
+    G2_timeindep = gauss_timeindep((Gates(1)+1):end,:);
+    G1_sum = sum(G1_timeindep,1); 
+    G2_sum = sum(G2_timeindep,1); 
+
+
+
+    if j==200
+    figure;
+    plot(xloc,G1_sum,'r','Linewidth',2);
+    hold on;
+    plot(xloc,G2_sum,'b','Linewidth',2);
+    ylabel('Intensity');
+    xlabel('Streamwise Pixels');
+    legend(["$g_1$","$g_2$"],'interpreter','latex')
+    grid on;    
+    set(gca,'FontSize', 15);
+    set(gca,'fontname','times')  % Set it to times
+
+
+    disp('wait');
+    end
+
+
+
+
+
 end
 
 %% Peter-out of the intensity
-row_peter = 50;
+row_peter = 100;
 binary_amp = linspace(0.20,1,row_peter);
 ideal_image(1:row_peter,:) = ideal_image(1:row_peter,:).*binary_amp';
 
-% plotting
-figure;
-image(ideal_image)
-colorbar;
-colormap(bone(round(max(ideal_image(:)))));
-set(gca,'FontSize', 15);
-set(gca,'fontname','times')  % Set it to times
-title('Synthetic Replication of Reported Data');
+% 
+% x = 1:size(ideal_image,2);
+% x = x-50;
+% y = size(ideal_image,1):-1:1;
+% imsc = 0.035;
+% x = x.*(imsc);
+% y = y.*(imsc);
+% % plotting
+% figure;
+% image(x,y,ideal_image)
+% colormap(turbo(round(max(ideal_image(:)))));
+% set(gca, 'YDir','normal')
+% set(gca,'FontSize', 18);
+% set(gca,'fontname','times')  % Set it to times
+% xlabel('Synth Distance [mm]');
+% ylabel('Synth Distance [mm]');
+% % title('Synthetic Replication of Reported Data');
 
 %% Resize the image to be in a hypothetical ROI
 ideal_image_ROI             = zeros(length(ROI(1):ROI(2)),length(ROI(3):ROI(4)));

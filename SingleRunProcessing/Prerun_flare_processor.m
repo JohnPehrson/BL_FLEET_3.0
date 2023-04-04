@@ -6,7 +6,7 @@ function [flare_mask_reg_scale,imageData_ROI_flaresubtracted,flare_height_mm] = 
 %the beam port. 
         
         %% Settings
-        half_height = 10; %pix
+        half_height = 5; %pix
         half_width = 50; %pix
         sigma_gfilt = [1.5,3];
         savename = ['Preprocessing_Filestorage/Flare_fit.mat'];
@@ -175,23 +175,23 @@ h = drawellipse('Center',[emissionlocatingdata(1),emissionlocatingdata(2)],'Semi
 mask = createMask(h);
 mean_mask = imageData_mean.*mask;
 % 
-% %% Comparing the prerun flare to the actual run flare
-% figure;
-% subplot(1,2,1);
-% image(prerun_mask)
-% colorbar;
-% colormap(turbo(max(prerun_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% title('Image Prerun Mask')
-% 
-% subplot(1,2,2);
-% image(mean_mask)
-% colorbar;
-% colormap(turbo(max(prerun_mask(:))));
-% axis equal;
-% set(gca, 'YDir','reverse')
-% title('Image Mean Mask')
+%% Comparing the prerun flare to the actual run flare
+figure;
+subplot(1,2,1);
+image(prerun_mask)
+colorbar;
+colormap(turbo(max(prerun_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse')
+title('Image Prerun Mask')
+
+subplot(1,2,2);
+image(mean_mask)
+colorbar;
+colormap(turbo(max(prerun_mask(:))));
+axis equal;
+set(gca, 'YDir','reverse')
+title('Image Mean Mask')
 
 %% Put the prerun flare fit into a matrix the size of the mean
 flare_mat = zeros(size(mean_mask));
@@ -221,9 +221,9 @@ flare_mat(ylocs,xlocs) = prerun_mask;
     right_force = flare_scale(3); %pixels
     flare_mask_reg = imtranslate(flare_mat,[y_rel+right_force,x_rel+down_force]);
 
-% figure;
-% imshowpair(flare_mask_reg,mean_mask);
-% title('Registration')
+figure;
+imshowpair(flare_mask_reg,mean_mask);
+title('Registration')
 
 %% Scaling
 flare_mask_reg_scale = flare_mask_reg.*flare_scale(2);
@@ -247,6 +247,70 @@ colorbar;
 colormap(turbo(max(imageData_ROI_flaresubtracted(:))));
 axis equal;
 set(gca, 'YDir','reverse')
+
+
+% %Thesis plot
+% 
+% y_rows = 1:size(imageData_mean,1);
+% yheight = 275;
+% trim_y_bin = y_rows>=yheight;
+% 
+% imageData_mean                  = imageData_mean(trim_y_bin,:);
+% flare_mask_reg_scale            = flare_mask_reg_scale(trim_y_bin,:);
+% imageData_ROI_flaresubtracted   = imageData_ROI_flaresubtracted(trim_y_bin,:);
+% x = 1:size(imageData_mean,2);
+% y = 1:size(imageData_mean,1);
+% x = x-emissionlocatingdata(1);
+% y2 = -1.*(y-(emissionlocatingdata(2)-yheight));
+% x_mm = resolution.*x./1000;
+% y_mm = resolution.*y2./1000;
+% 
+% max_axis = 1000; %round(max(imageData_mean(:)));
+% 
+% 
+% fig_labels = ["Scitech_Pictures\Mean_refl.svg";"Scitech_Pictures\Flare_refl.svg";"Scitech_Pictures\Subt_refl.svg"];
+% 
+% % 
+% figure;
+% image(x_mm,y_mm,imageData_mean);
+% colormap(jet(max_axis));
+% set(gca,'YDir','normal')
+% axis equal;
+% xlim([min(x_mm),max(x_mm)]);
+% ylim([min(y_mm),max(y_mm)]);
+% set(gca,'FontSize', 20);
+% set(gca,'fontname','times')  % Set it to times
+% xlabel('Downstream Distance [mm]');
+% ylabel('Height above surface [mm]');
+% saveas(gcf,fig_labels(1));
+% 
+% 
+% figure;
+% image(x_mm,y_mm,flare_mask_reg_scale)
+% colormap(jet(max_axis));
+% axis equal;
+% set(gca, 'YDir','normal')
+% xlim([min(x_mm),max(x_mm)]);
+% ylim([min(y_mm),max(y_mm)]);
+% set(gca,'FontSize', 20);
+% set(gca,'fontname','times')  % Set it to times
+% xlabel('Downstream Distance [mm]');
+% ylabel('Height above surface [mm]');
+% saveas(gcf,fig_labels(2));
+% 
+% 
+% figure;
+% image(x_mm,y_mm,imageData_ROI_flaresubtracted)
+% colormap(jet(max_axis));
+% axis equal;
+% set(gca,'YDir','normal')
+% xlim([min(x_mm),max(x_mm)]);
+% ylim([min(y_mm),max(y_mm)]);
+% set(gca,'FontSize', 20);
+% set(gca,'fontname','times')  % Set it to times
+% xlabel('Downstream Distance [mm]');
+% ylabel('Height above surface [mm]');
+% saveas(gcf,fig_labels(3));
 
 close([f1])
 

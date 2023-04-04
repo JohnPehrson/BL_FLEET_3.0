@@ -92,7 +92,7 @@ end
         rowaverage = mean(prerunData_mean(:,round(g1_location_col-sum_half_width):round(g1_location_col+sum_half_width)),2);
         [amp2,wallfit_location_col2] = max(rowaverage);
 
-%     %gaussian fit
+    %gaussian fit
 %         x0 = [amp2,wallfit_location_col2,2];
 %         LB = [0.5.*amp2,wallfit_location_col2-5,1];
 %         UB = [2.*amp2,wallfit_location_col2+5,3];

@@ -102,7 +102,7 @@ end
         title(['C2 row number ',num2str(rows_hist(3))]);
 
 %box plot at 3 heights
-rows = 50:25:300;
+rows = [50:25:325,347];
     %make a matrix for the box plots
     box_mat = [fliplr(c1(rows,:)'),fliplr(c2(rows,:)')];
     
@@ -110,7 +110,7 @@ rows = 50:25:300;
 
     for i = 1:length(boxplot_names)
         fliprows = fliplr(rows);
-        boxplot_names{i} = ['Fitted Centroids on row ',num2str(fliprows(i))];
+        boxplot_names{i} = ['Row ',num2str(fliprows(i))];
     end
     ub_c1 = flipud(gate1_location_bounds(rows,3));
     lb_c1 = flipud(gate1_location_bounds(rows,1));
@@ -119,15 +119,29 @@ rows = 50:25:300;
 
 figure;
 boxplot(box_mat(:,1:length(lb_c1)),'Notch','on','Labels',boxplot_names(1:length(lb_c1)))
+    h = findobj(gca,'Tag','Box');
+    for j=1:length(h)
+        patch(get(h(j),'XData'),get(h(j),'YData'),'g','FaceAlpha',.5);
+    end
+
 hold on;
 boxplot(box_mat(:,(length(lb_c1)+1):(length(lb_c2)+length(lb_c1))),'Notch','on','Labels',boxplot_names(1:length(lb_c1)))
-hold on
+    h = findobj(gca,'Tag','Box');
+    for j=1:(length(h)/2)
+        patch(get(h(j),'XData'),get(h(j),'YData'),'b','FaceAlpha',.5);
+    end
+
 line(1:length(ub_c1),ub_c1,'Color','red','LineStyle','--');
 line(1:length(lb_c1),lb_c1,'Color','red','LineStyle','--');
 line(1:length(ub_c2),ub_c2,'Color','red');
 line(1:length(lb_c2),lb_c2,'Color','red');
 ylabel('Streamwise Pixels')
 ylim([min(lb_c1)-2,max(ub_c2)+2])
+set(gca,'FontSize', 15);
+
+leg_labels = ["\mu_1","","","","","","","","","","","","","\mu_2","","","","","","","","","","","","","Bounds for \mu_1","","Bounds for \mu_2",""];
+legend(leg_labels);
+
 
 view([90 -90])
 

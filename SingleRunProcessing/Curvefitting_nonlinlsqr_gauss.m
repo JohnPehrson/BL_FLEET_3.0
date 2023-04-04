@@ -47,5 +47,40 @@ centroids = [fitvariables(2),fitvariables(4)];
 %% Fitting variables to send out
     fitvariables_out = [fitvariables(1:2),widths(1),fitvariables(3:4),widths(2)];
 
+
+%% Figure for my Thesis
+% 
+% if fitvariables(3) >1000
+% figure;
+% plot(rowcounter,onerow_data,'b','Linewidth',2);
+% hold on;
+% plot(rowcounter,fit_gauss_double_gauss(fitvariables),'r','Linewidth',2);
+% plot([centroids(1),centroids(1)],[0,2000],'--k','Linewidth',2);
+% plot([centroids(2),centroids(2)],[0,2000],'k','Linewidth',2);
+% %title('Curve fitting for row number ', num2str(rownumber));
+% xlabel('Streamwise Pixels');
+% ylabel('Pixel Intensity');
+% legend(["Row of FLEET Data","Double-Gaussian Fit","\mu_1","\mu_2"]);
+% set(gca,'FontSize', 15);
+% 
+% 
+% disp('wait');
+% 
+% end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 end
 

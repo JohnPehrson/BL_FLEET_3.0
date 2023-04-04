@@ -28,6 +28,7 @@ end
     flare_data = zeros(size(imageData_ROI));
     imageData_ROI_flaresubtracted = imageData_ROI;
     flare_height_pix = 0;
+    flare_height_mm = 0.35;
     end
 
 
@@ -46,7 +47,7 @@ end
 
     %noise calculation
     [noise] = NoiseCalculator(prerunData_mean);
-    noise = max([noise,15]);
+%     noise = max([noise,15]);
 
     [centroids,snr,centroid_error,fitvariables,residual,nearwall_bounds,...
         near_wall_extrap,difference_imfit] = Single_Image_Fitting(imageData_ROI_flaresubtracted,...
@@ -91,22 +92,15 @@ end
     c2 = resolution.*(fitvariables(:,5)-emissionlocatingdata(1))./1000;
 
     figure;
-    subplot(1,2,1);
     image(x_mm,y_mm,imageData_ROI_flaresubtracted)
-    colorbar;
-    colormap(jet(round(max(imageData_ROI_flaresubtracted(:)))));
+    colormap(jet(4096));
     hold on;
-    plot(gb1(:,1),y_mm,'r','Linewidth',2);
-    hold on
-    plot(c1,y_mm,'k','Linewidth',2);
-    hold on;
-    plot(gb1(:,3),y_mm,'r','Linewidth',2);
-    hold on;
+    plot(gb1(:,1),y_mm,'--r','Linewidth',2);
+    plot(gb1(:,3),y_mm,'--r','Linewidth',2);
     plot(gb2(:,1),y_mm,'r','Linewidth',2);
-    hold on
-    plot(c2,y_mm,'k','Linewidth',2);
-    hold on;
     plot(gb2(:,3),y_mm,'r','Linewidth',2);
+    plot(c1,y_mm,'--k','Linewidth',2);
+    plot(c2,y_mm,'k','Linewidth',2);
     axis equal;
     set(gca, 'YDir','reverse')
     xlabel('Downstream Distance [mm]');
@@ -115,18 +109,18 @@ end
     set(gca,'fontname','times')  % Set it to times
     ax = gca;
     ax.YDir = 'normal';
-    legend('Emission Gate Bounds','Gate Fit')
+    legend(["Fitting Bounds \mu_1","","Fitting Bounds \mu_2","","Centroids \mu_1","Centroids \mu_2"])
     xlim([min(x_mm),max(x_mm)]);
     ylim([min(y_mm),max(y_mm)]);
 
-        subplot(1,2,2);
-        plot(snr,y_mm,'r','Linewidth',2);
-        grid on;
-        ylim([min(y_mm),max(y_mm)]);
-        xlabel('SNR [-]');
-        ylabel('Height above the surface [mm]');
-        set(gca,'FontSize', 20);
-        set(gca,'fontname','times')  % Set it to times
+    figure;
+    plot(snr,y_mm,'r','Linewidth',2);
+    grid on;
+    ylim([min(y_mm),max(y_mm)]);
+    xlabel('SNR [-]');
+    ylabel('Height above the surface [mm]');
+    set(gca,'FontSize', 20);
+    set(gca,'fontname','times')  % Set it to times
 
 %Plot for visualizing near-wall fitting after extrapolation
         %     figure;

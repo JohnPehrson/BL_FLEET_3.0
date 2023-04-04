@@ -50,18 +50,13 @@ lower_bound_r_velo(lower_bound_r_velo<0) = 0;
 lower_bound_r_velo(lower_bound_r_velo>250) = 250;
 filt_r_velo_rowwise = red_velocity_r>lower_bound_r_velo;
 
-% filtering using synthetic data, limit upper bound
-if synth_switch
-    filt_synth = ones(size(filt_r_velo_rowwise))>0;
-    temp_filt_rows = row_mm<14;
-    filt_synth = filt_synth.*temp_filt_rows;
-else
-    filt_synth = ones(size(filt_r_velo_rowwise))>0;
-end
-
 %combine all filters into the master filter
-filt_binary_master = ~(filt_g2_bounds & filt_SNR & filt_r_velo_rowwise & filt_SNR_rowwise & filt_synth); %& filt_r2
+filt_binary_master = ~(filt_g2_bounds & filt_SNR & filt_r_velo_rowwise & filt_SNR_rowwise); %& filt_r2
 filt_binary_master_passed = ~filt_binary_master;
+if synth_switch
+filt_binary_master = zeros(size(filt_binary_master));
+filt_binary_master_passed = ~filt_binary_master;
+end
 images_percentage_passed_filtering = 1-mean(filt_binary_master,2);
 
 figure;
@@ -79,19 +74,21 @@ legend('Total Filtering by row','G2 Bounds Filtering','SNR Filtering Threshold',
 set(gca, 'YDir','reverse')
 
 %% Filtering data in output variable format
-g1_centroids(filt_binary_master) = NaN;
-g2_centroids(filt_binary_master) = NaN;
+if ~synth_switch
+    g1_centroids(filt_binary_master) = NaN;
+    g2_centroids(filt_binary_master) = NaN;
+    
+    red_velocity(filt_binary_master) = NaN;
+    red_velocity_s(filt_binary_master) = NaN;
+    red_velocity_r(filt_binary_master) = NaN;
+    red_g2SNR(filt_binary_master) = NaN;
+end  
+    
+    out_centroids(:,1:2:end) = g1_centroids;
+    out_centroids(:,2:2:end) = g2_centroids;
+    out_velocity = red_velocity;
+    out_velocity_s = red_velocity_s;
+    out_velocity_r = red_velocity_r;
+    out_g2SNR = red_g2SNR;
 
-red_velocity(filt_binary_master) = NaN;
-red_velocity_s(filt_binary_master) = NaN;
-red_velocity_r(filt_binary_master) = NaN;
-red_g2SNR(filt_binary_master) = NaN;
-
-
-out_centroids(:,1:2:end) = g1_centroids;
-out_centroids(:,2:2:end) = g2_centroids;
-out_velocity = red_velocity;
-out_velocity_s = red_velocity_s;
-out_velocity_r = red_velocity_r;
-out_g2SNR = red_g2SNR;
 end

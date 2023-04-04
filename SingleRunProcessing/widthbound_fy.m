@@ -17,7 +17,7 @@ end
 %do gate 2 as a line in the 'freestream'
 g2frs = [1:cutoff_height_switchover(1),cutoff_height_switchover(3):ypix];
 for i = g2frs
-    g2_bounds(i,:) = [gate2_location-g2_half_width,gate2_location,gate2_location+g2_half_width+g2_bound_extend];
+    g2_bounds(i,:) = [gate2_location-g2_half_width-5,gate2_location,gate2_location+g2_half_width+g2_bound_extend];
 end
 
 % figure;
@@ -59,7 +59,7 @@ end
 colpix(colpix<gate1_location) = gate1_location;
 
 for i = 1:length(g2bl)
-    g2_bounds(g2bl(i),1) = [colpix(i)-g2_half_width];
+    g2_bounds(g2bl(i),1) = [colpix(i)-g2_half_width-5];
 end
 
 if lam_run_binary 
@@ -69,8 +69,8 @@ if lam_run_binary
 end
 
 
-figure;
-plot(g2_bounds,1:ypix);
-set(gca, 'YDir','reverse');
+% figure;
+% plot(g2_bounds,1:ypix);
+% set(gca, 'YDir','reverse');
 
 end
