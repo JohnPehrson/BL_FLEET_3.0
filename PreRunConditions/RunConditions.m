@@ -1,9 +1,9 @@
 clc;clear all;close all;
-%% Run Conditions Script
 
 %This script writes a mat file that contains all the run conditions for the
 %tests, different rows correspond to different tests
 
+%% Run Conditions
 Gates = [25,700;...
          20,700;...
          20,700;...
@@ -34,7 +34,6 @@ Delays = [40,1400;...
           50,1500;
           50,1500];
 
-Gain = [0.9;0.9;0.9;0.85;.85;.88;.90;.85;.87;.90;.90;.90;.90;.90];
 %positive is upstream, negative is downstream, second column is uncertainty
 SpanwiseCameraAngle = [1.5,1;
                        1.5,1;
@@ -67,7 +66,6 @@ RunNames =  ["SRA_22C";...
             "SRA_22C"];
 
 %% Location Stuff
-
 hole_x = [181;220;220;320;320;320;...
           370;370;370;410;410;410;...
           510;510;510;540;...
@@ -95,6 +93,15 @@ for i = 1:length(holelabels)
     spanwise_loc(TF) = hole_y(i);
 end
 
-save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat',...
-    'Gates','Delays','Gain','RunNames','downstream_loc','spanwise_loc','downstream_loc_unc','spanwise_loc_unc',...
+%% Data Saving
+ currentdir  = pwd;
+ idcs   = strfind(currentdir,'\');
+ rootdir = currentdir(1:idcs(end)-1);
+savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions","BLFLEETRunConditions.mat");
+
+save(savefilepath,'Gates','Delays','RunNames','downstream_loc','spanwise_loc','downstream_loc_unc','spanwise_loc_unc',...
     'SpanwiseCameraAngle');
+
+
+
+
