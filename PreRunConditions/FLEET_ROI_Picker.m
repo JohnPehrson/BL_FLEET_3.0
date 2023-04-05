@@ -5,11 +5,19 @@ clear all;close all;clc;
     %and then lets me manually set in points in the rough area I want to
     %curve fit
 
+    %% Get info about directories to know hwere to load in data
+     currentdir  = pwd;
+ idcs   = strfind(currentdir,'\');
+ rootdir = currentdir(1:idcs(end)-1);
+savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions");
+
 %% Input variables from other preprocessing scripts
-    FLEET_folders_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/FLEETFilePaths.mat';
-    Run_Conditions_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';    %stuff like gates and delays
-    ACE_On_Condition_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat';
-    Resolution_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';
+
+
+    FLEET_folders_filepath = fullfile(savefilepath,"FLEETFilePaths.mat");
+    Run_Conditions_filepath = fullfile(savefilepath,"BLFLEETRunConditions.mat");    %stuff like gates and delays
+    ACE_On_Condition_filepath = fullfile(savefilepath,"ACE_Data.mat");
+    Resolution_filepath = fullfile(savefilepath,"RefData.mat");
 
     %loading filepaths
     load(FLEET_folders_filepath);
@@ -140,7 +148,7 @@ for i = 1:num_runs
 end
 
 %% Save out final ROIs
-ROI_savefile = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/FLEET_ROIs.mat';
-save(ROI_savefile,'ROIs','top_offset_runs');
+save(fullfile(savefilepath,"FLEET_ROIs.mat"),'ROIs','top_offset_runs');
+
 
 

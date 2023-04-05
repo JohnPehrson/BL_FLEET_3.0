@@ -5,7 +5,12 @@ clear all;close all;clc;
 
 %% Initialization of variables
  %get runs to use
-    load('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat');
+ currentdir  = pwd;
+ idcs   = strfind(currentdir,'\');
+ rootdir = currentdir(1:idcs(end)-1);
+savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions");
+
+ load(fullfile(savefilepath,"RefData.mat"))
 
     DAQ_times = cell(length(uniqueruns),1);
     DAQ_Res = cell(length(uniqueruns),1);
@@ -193,6 +198,6 @@ DAQ_flare_start_stop(:,1) = 1;
 
 
 %% Save out Data
-save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat',...
+save(fullfile(savefilepath,"ACE_Data.mat"),...
     'Run_Re_scaled','DAQ_start_stops','DAQ_flare_start_stop','Run_Mach','Run_Mean_Velo');
 

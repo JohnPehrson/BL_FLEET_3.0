@@ -10,6 +10,10 @@ folderpaths = string(folderpaths);
 filenames = string(filenames);
 run_filepaths = [folderpaths,filenames];
 
-save('C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/FLEETFilePaths.mat',...
-    'run_filepaths');
+%% Data Saving
+ currentdir  = pwd;
+ idcs   = strfind(currentdir,'\');
+ rootdir = currentdir(1:idcs(end)-1);
+savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions","FLEETFilePaths.mat");
 
+save(savefilepath,'run_filepaths');
