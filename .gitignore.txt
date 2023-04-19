@@ -1,4 +1,0 @@
-#ignore all mat files
-*.mat
-*/*.mat
-*/*/*.mat
