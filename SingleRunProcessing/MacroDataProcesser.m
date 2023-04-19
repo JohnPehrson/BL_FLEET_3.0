@@ -44,7 +44,7 @@ clear all;close all;clc;
 
     %Data processing inputs
     %5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495
-    run = [5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
+    run = [5479,5483,5484,5485,5486,5487,5488,5489,5490,5491,5492,5493,5494,5495];  %from uniqueruns, can be a vector if you want to process multiple runs in a row
     lam_runs = [5492;5493]; %these runs were closest behind the trips and should be fit with unique bounds to ensure the curve fitting algorithm can identify the gates
     cross_shock_runs = [5487;5488;5489];  %these runs were downstream the crossing shocks and thus the 'g2 bounds' should not approach the freestream
     total_im_process = NaN; %NaN if process all
@@ -138,7 +138,7 @@ for run_loop = run_stepper(binary_proc_runs)
         end
 
     %% Synthetic Data for use if the switch is flipped
-        synth_switch = true;  
+        synth_switch = false;  
         synth_numimages = 500;
         
         if synth_switch
@@ -186,7 +186,7 @@ for run_loop = run_stepper(binary_proc_runs)
                 lam_run_binary,single_run,top_offset,freestream_est_fitting,cross_shock_run_binary,flare_scale,near_wall_g1_scale,...
                 prerun_flare_binary,...
                 rerun_switch,rerun_savename,both_const_mod); %variables for rerunning the same data with different near-wall fitting parameters
-
+end
             %% Processing (primary fitting process with instantaneous velocity measurements
                 [red_centroids,red_velocity,red_velocity_s,red_velocity_r,red_g2SNR,...
                 uncertainty_wall_loc_pix,numimages] = BLImageProcessor(run_loop,run_filepaths(run_loop,:),...
@@ -233,4 +233,4 @@ for run_loop = run_stepper(binary_proc_runs)
         background_totalfit,filt_centroids,filt_velocity,...
         decay_error_eq);
 close all;
-end
+% end
