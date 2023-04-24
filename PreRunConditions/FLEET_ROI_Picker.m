@@ -5,15 +5,8 @@ clear all;close all;clc;
     %and then lets me manually set in points in the rough area I want to
     %curve fit
 
-<<<<<<< Updated upstream
-%% Input variables from other preprocessing scripts
-    FLEET_folders_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/FLEETFilePaths.mat';
-    Run_Conditions_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/BLFLEETRunConditions.mat';    %stuff like gates and delays
-    ACE_On_Condition_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/ACE_Data.mat';
-    Resolution_filepath = 'C:\Users\clark\Documents\GitHub\BL_FLEET_3.0\SingleRunProcessing\TestConditions/RefData.mat';
-=======
-    %% Get info about directories to know where to load in data
-     currentdir  = pwd;
+ %% Get info about directories to know where to load in data
+   currentdir  = pwd;
  idcs   = strfind(currentdir,'\');
  rootdir = currentdir(1:idcs(end)-1);
 savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions");
@@ -24,7 +17,6 @@ savefilepath = fullfile(rootdir,"SingleRunProcessing","TestConditions");
     Run_Conditions_filepath = fullfile(savefilepath,"BLFLEETRunConditions.mat");    %stuff like gates and delays
     ACE_On_Condition_filepath = fullfile(savefilepath,"ACE_Data.mat");
     Resolution_filepath = fullfile(savefilepath,"RefData.mat");
->>>>>>> Stashed changes
 
     %loading filepaths
     load(FLEET_folders_filepath);

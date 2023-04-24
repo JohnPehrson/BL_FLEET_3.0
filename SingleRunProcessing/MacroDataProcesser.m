@@ -186,10 +186,8 @@ for run_loop = run_stepper(binary_proc_runs)
                 lam_run_binary,single_run,top_offset,freestream_est_fitting,cross_shock_run_binary,flare_scale,near_wall_g1_scale,...
                 prerun_flare_binary,...
                 rerun_switch,rerun_savename,both_const_mod); %variables for rerunning the same data with different near-wall fitting parameters
-<<<<<<< Updated upstream
-=======
+
         end
->>>>>>> Stashed changes
 end
             %% Processing (primary fitting process with instantaneous velocity measurements
                 [red_centroids,red_velocity,red_velocity_s,red_velocity_r,red_g2SNR,...
@@ -234,12 +232,8 @@ end
         synthfilepath,synth_switch,nondim_velo_error,...
         synth_input_tau_fit,synth_input_velocity_mean,...
         zero_height_ref_unc,sufficient_counter,...
-<<<<<<< Updated upstream
         background_totalfit,filt_centroids,filt_velocity,...
         decay_error_eq);
 close all;
-=======
-        background_totalfit,filt_centroids,filt_velocity);
 
->>>>>>> Stashed changes
 % end
