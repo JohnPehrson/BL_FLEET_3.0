@@ -23,7 +23,7 @@ red_move_ROI_ud = []; %correction in pixels
 
     %% Parallel processing
     WaitMessage = parfor_wait(length(imageprocess_numbers), 'Waitbar', true);
-    for imloop = 1:length(imageprocess_numbers)
+    parfor imloop = 1:length(imageprocess_numbers)
         
         %Initializing temporary variables
         %just used locally

@@ -168,10 +168,10 @@ for run_loop = run_stepper(binary_proc_runs)
         data_processing_filepath = ['ProcessedData/ProcessedSynthData_Run',num2str(run_loop),'Imcount_',num2str(total_im_process),'.mat'];
         end
         
-%         if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
-%                 load(data_processing_filepath);
-%                 num_ims_runs(run_loop) = numimages;
-%             else % Bounds don't already exist, compute them
+        if (isfile(data_processing_filepath)) %if it has been done before, don't redo it, just load it
+                load(data_processing_filepath);
+                num_ims_runs(run_loop) = numimages;
+            else % Bounds don't already exist, compute them
             %% Preprocessing (getting mean data, image bounding/ROI, filtering, fitting bounding)
                 [imageData_mean,dust_filter_bounds_bottom,dust_filter_bounds_top,gate1_location_bounds,...
                 gate2_location_bounds,background_totalfit,emissionlocatingdata,cutoff_height_pixels,...
@@ -187,8 +187,8 @@ for run_loop = run_stepper(binary_proc_runs)
                 prerun_flare_binary,...
                 rerun_switch,rerun_savename,both_const_mod); %variables for rerunning the same data with different near-wall fitting parameters
 
-        end
-end
+%         end
+% end
             %% Processing (primary fitting process with instantaneous velocity measurements
                 [red_centroids,red_velocity,red_velocity_s,red_velocity_r,red_g2SNR,...
                 uncertainty_wall_loc_pix,numimages] = BLImageProcessor(run_loop,run_filepaths(run_loop,:),...
@@ -205,7 +205,8 @@ end
             num_ims_runs(run_loop) = numimages;
 
 
-%         end
+        end
+end
 
     %% Postprocessing (filtering and calculating time-averaged velocimetry data)
     [velocity_mean,velocity_mean_r,velocity_mean_s,velocity_rms,velocity_rms_r,...
